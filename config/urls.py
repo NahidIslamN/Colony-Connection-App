@@ -10,6 +10,7 @@ urlpatterns = [
     path("api/v1/profiles/", include("apps.profiles.urls")),
     path("api/v1/social_auth/", include("apps.social_auth.urls")),
     path("api/v1/notifications/", include("apps.notifications.urls")),
+    path("api/v1/managements/", include("apps.managements.urls")),
 ]
 
 if settings.DEBUG:

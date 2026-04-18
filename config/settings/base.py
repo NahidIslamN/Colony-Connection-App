@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "apps.profiles.apps.ProfilesConfig",
     "apps.social_auth.apps.SocialAuthConfig",
     "apps.notifications.apps.NotificationsConfig",
+    "apps.managements.apps.ManagementsConfig",
 ]
 
 MIDDLEWARE = [
