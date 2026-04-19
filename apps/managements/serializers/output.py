@@ -61,6 +61,60 @@ class SalesRepresentativeOutputSerializer(serializers.ModelSerializer):
         )
 
 
+class SalesRepresentativeColonyOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Colony
+        fields = (
+            "id",
+            "name",
+            "region",
+            "status",
+            "location_url",
+            "latitude",
+            "longitude",
+        )
+
+
+
+
+class SalesRepresentativeReadOutputSerializer001(serializers.ModelSerializer):
+    """Read-only serializer for list/detail views with assigned colonies."""
+
+    user = SafeUserOutputSerializer(read_only=True)
+    class Meta:
+        model = SalesRepresentative
+        fields = (
+            "id",
+            "company",
+            "user",
+            "full_name",
+            "status",
+            "email",
+            "phone",
+        )
+
+
+
+class SalesRepresentativeReadOutputSerializer(serializers.ModelSerializer):
+    """Read-only serializer for list/detail views with assigned colonies."""
+
+    user = SafeUserOutputSerializer(read_only=True)
+    colonies = SalesRepresentativeColonyOutputSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SalesRepresentative
+        fields = (
+            "id",
+            "company",
+            "user",
+            "colonies",
+            "full_name",
+            "status",
+            "email",
+            "phone",
+        )
+
+
 class CustomerOutputSerializer(serializers.ModelSerializer):
     user = SafeUserOutputSerializer(read_only=True)
 

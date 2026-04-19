@@ -9,11 +9,32 @@ from .colony_service import (
     update_colony,
     delete_colony,
 )
+from .sales_representative_service import (
+    delete_sales_rep,
+    get_sales_rep_by_id,
+    get_sales_reps_for_company,
+    update_sales_rep,
+    assign_sales_rep_to_colonies,
+    get_colonies_for_sales_rep,
+    create_sales_rep_with_user,
+)
 
 __all__ = [
     "create_colony",
     "get_colony_by_id",
     "get_colonies_for_company",
+    "get_colonies_count_for_company",
+    "get_total_customer_count_for_company",
+    "get_active_colonies_count_for_company",
+    "get_salses_rep_for_company",
     "update_colony",
     "delete_colony",
+    "get_sales_reps_for_company",
+    "get_sales_rep_by_id",
+    "create_sales_rep",
+    "update_sales_rep",
+    "delete_sales_rep",
+    "assign_sales_rep_to_colonies",
+    "get_colonies_for_sales_rep",
+    "create_sales_rep_with_user",
 ]

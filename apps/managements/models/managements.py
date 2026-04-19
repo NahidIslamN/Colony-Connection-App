@@ -34,6 +34,7 @@ class SalesRepresentative(models.Model):
         ('on_leave', 'On Leave'),
     )
     company = models.ForeignKey("Company", on_delete=models.CASCADE)
+    
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=250)
