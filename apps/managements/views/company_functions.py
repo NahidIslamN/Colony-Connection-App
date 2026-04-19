@@ -7,12 +7,13 @@ from rest_framework.views import APIView
 
 from apps.managements.models import Company
 from apps.managements.serializers.input import ColonyCreateUpdateInputSerializer, ColonyPatchInputSerializer
-from apps.managements.serializers.output import ColonyOutputSerializer
+from apps.managements.serializers.output import ColonyOutputSerializer, SalesRepresentativeOutputSerializer
 from apps.managements.services import (
     create_colony,
     delete_colony,
     get_colonies_for_company,
     get_colonies_count_for_company,
+    get_salses_rep_for_company,
     get_total_customer_count_for_company,
     get_active_colonies_count_for_company,
     get_colony_by_id,
@@ -196,8 +197,6 @@ class ColonyDetailAPIView(APIView):
     
 
 
-
-
 class ColonyAnalyticsService(APIView):
     permission_classes = [IsCompany]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
@@ -226,4 +225,28 @@ class ColonyAnalyticsService(APIView):
         except Company.DoesNotExist:
             return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
 
+
+
+
+
+
+class SalseRepList(APIView):
+    permission_classes = [IsCompany]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    pagination_class = CustomPagination
+
+    def get(self, request):
+        try:
+            company = Company.objects.get(user=request.user)
+
+            sales_reps = get_salses_rep_for_company(company)           
+
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+        
+        paginator = self.pagination_class()
+        paginated_colonies = paginator.paginate_queryset(sales_reps, request)
+        serializer = SalesRepresentativeOutputSerializer(paginated_colonies, many=True)
+        return paginator.get_paginated_response(serializer.data)
+      
         

@@ -5,6 +5,7 @@ from .colony_service import (
     get_colonies_count_for_company,
     get_total_customer_count_for_company,
     get_active_colonies_count_for_company,
+    get_salses_rep_for_company,
     update_colony,
     delete_colony,
 )

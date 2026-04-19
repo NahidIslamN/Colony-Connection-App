@@ -2,7 +2,7 @@
 Colony business logic service layer.
 """
 
-from apps.managements.models import Colony, Company, Customer
+from apps.managements.models import Colony, Company, Customer, SalesRepresentative
 
 
 def get_colonies_for_company(company: Company):
@@ -18,6 +18,16 @@ def get_colonies_count_for_company(company: Company):
 def get_active_colonies_count_for_company(company: Company):
     """Get all colonies for a specific company."""
     return Colony.objects.filter(colony_owner=company, status="active").count()
+
+
+
+def get_salses_rep_for_company(company: Company):
+    """Get all colonies for a specific company."""
+    return SalesRepresentative.objects.filter(company = company)
+
+
+
+
 
 
 def get_total_customer_count_for_company(company: Company):
