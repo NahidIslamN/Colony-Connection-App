@@ -18,6 +18,13 @@ from .sales_representative_service import (
     get_colonies_for_sales_rep,
     create_sales_rep_with_user,
 )
+from .customer_service import (
+    create_customer_with_user,
+    delete_customer,
+    get_customer_by_id,
+    get_customers_for_company,
+    update_customer,
+)
 
 __all__ = [
     "create_colony",
@@ -31,10 +38,14 @@ __all__ = [
     "delete_colony",
     "get_sales_reps_for_company",
     "get_sales_rep_by_id",
-    "create_sales_rep",
     "update_sales_rep",
     "delete_sales_rep",
     "assign_sales_rep_to_colonies",
     "get_colonies_for_sales_rep",
     "create_sales_rep_with_user",
+    "get_customers_for_company",
+    "get_customer_by_id",
+    "create_customer_with_user",
+    "update_customer",
+    "delete_customer",
 ]

@@ -34,7 +34,7 @@ class SalesRepresentative(models.Model):
         ('on_leave', 'On Leave'),
     )
     company = models.ForeignKey("Company", on_delete=models.CASCADE)
-    
+
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=250)
@@ -49,9 +49,15 @@ class SalesRepresentative(models.Model):
 
 
 class Customer(models.Model):
-    owner_company = models.ForeignKey("Company", on_delete=models.CASCADE)
+    STATUS_CHOICES = (
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+        ("paused", "Paused"),
+    )
 
+    owner_company = models.ForeignKey("Company", on_delete=models.CASCADE)
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+
     owner_name = models.CharField(max_length=250)
     company_name = models.CharField(max_length=250)
     industry = models.CharField(max_length=100)
@@ -59,6 +65,8 @@ class Customer(models.Model):
 
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
+
+    status = models.CharField(max_length=250, choices=STATUS_CHOICES, default="active")
 
     street_address = models.TextField()
     city = models.CharField(max_length=100)

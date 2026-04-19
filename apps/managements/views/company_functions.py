@@ -7,6 +7,8 @@ from rest_framework.views import APIView
 
 from apps.managements.models import Company, Colony
 from apps.managements.serializers.input import (
+    CustomerCreateUpdateInputSerializer,
+    CustomerPatchInputSerializer,
     ColonyCreateUpdateInputSerializer,
     ColonyPatchInputSerializer,
     SalesRepresentativeCreateUpdateInputSerializer,
@@ -16,23 +18,28 @@ from apps.managements.serializers.input import (
 )
 from apps.managements.serializers.output import (
     ColonyOutputSerializer,
+    CustomerReadOutputSerializer,
     SalesRepresentativeOutputSerializer,
     SalesRepresentativeReadOutputSerializer,
-    SalesRepresentativeReadOutputSerializer001
 )
 from apps.managements.services import (
+    create_customer_with_user,
     create_colony,
 
     create_sales_rep_with_user,
+    delete_customer,
     delete_colony,
     delete_sales_rep,
     get_colonies_for_company,
     get_colonies_count_for_company,
+    get_customer_by_id,
+    get_customers_for_company,
     get_total_customer_count_for_company,
     get_active_colonies_count_for_company,
     get_colony_by_id,
     get_sales_rep_by_id,
     get_sales_reps_for_company,
+    update_customer,
     update_colony,
     update_sales_rep,
     assign_sales_rep_to_colonies,
@@ -230,7 +237,7 @@ class SalseRepList(APIView):
         
         paginator = self.pagination_class()
         paginated_colonies = paginator.paginate_queryset(sales_reps, request)
-        serializer = SalesRepresentativeReadOutputSerializer001(paginated_colonies, many=True)
+        serializer = SalesRepresentativeReadOutputSerializer(paginated_colonies, many=True)
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -458,3 +465,152 @@ class ColoniesForAssignmentAPIView(APIView):
         except Exception as exc:
             logger.error(f"Error retrieving colonies: {exc}", exc_info=True)
             return error_response("Failed to retrieve colonies.", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SalesRepsForAssignmentAPIView(APIView):
+    """Get list of sales reps available for assignment to customers."""
+
+    permission_classes = [IsCompany]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+
+    def get(self, request):
+        logger.info(f"[REQUEST_ID: {request.request_id}] GET - Available sales reps for assignment")
+
+        try:
+            company = Company.objects.get(user=request.user)
+            sales_reps = get_sales_reps_for_company(company).values("id", "full_name", "status", "email", "phone")
+            return success_response(
+                "Sales representatives retrieved successfully",
+                status.HTTP_200_OK,
+                data=list(sales_reps),
+            )
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+        except Exception as exc:
+            logger.error(f"Error retrieving sales representatives: {exc}", exc_info=True)
+            return error_response("Failed to retrieve sales representatives.", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+#################################### Customer Management Views #####################
+
+
+class CustomerListCreateAPIView(APIView):
+    permission_classes = [IsCompany]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    pagination_class = CustomPagination
+
+    def get(self, request):
+        try:
+            company = Company.objects.get(user=request.user)
+            customers = get_customers_for_company(company)
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+
+        paginator = self.pagination_class()
+        paginated_customers = paginator.paginate_queryset(customers, request)
+        serializer = CustomerReadOutputSerializer(paginated_customers, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    def post(self, request):
+        serializer = CustomerCreateUpdateInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response(
+                "Validation error.",
+                status.HTTP_400_BAD_REQUEST,
+                errors=serializer.errors,
+            )
+
+        try:
+            company = Company.objects.get(user=request.user)
+            result = create_customer_with_user(company, serializer.validated_data)
+
+            if not result.get("success"):
+                return error_response(result.get("message"), status.HTTP_400_BAD_REQUEST)
+
+            customer = result.get("customer")
+            output_serializer = CustomerReadOutputSerializer(customer)
+
+            return success_response(
+                result.get("message"),
+                status.HTTP_201_CREATED,
+                data={
+                    "customer": output_serializer.data,
+                    "assigned_sales_reps_count": result.get("assigned_sales_reps_count", 0),
+                    "assigned_colonies_count": result.get("assigned_colonies_count", 0),
+                    "machinery_info_accepted": result.get("machinery_info_accepted", False),
+                },
+            )
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+        except Exception as exc:
+            logger.error(f"Error creating customer: {exc}", exc_info=True)
+            return error_response("Failed to create customer.", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CustomerDetailAPIView(APIView):
+    permission_classes = [IsCompany]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+
+    def get(self, request, pk):
+        try:
+            company = Company.objects.get(user=request.user)
+            customer = get_customer_by_id(pk, company)
+            if not customer:
+                return error_response("Customer not found.", status.HTTP_404_NOT_FOUND)
+
+            serializer = CustomerReadOutputSerializer(customer)
+            return success_response(
+                "Customer retrieved successfully.",
+                status.HTTP_200_OK,
+                data=serializer.data,
+            )
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request, pk):
+        serializer = CustomerPatchInputSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return error_response(
+                "Validation error.",
+                status.HTTP_400_BAD_REQUEST,
+                errors=serializer.errors,
+            )
+
+        try:
+            company = Company.objects.get(user=request.user)
+            result = update_customer(pk, company, serializer.validated_data)
+
+            if not result.get("success"):
+                if result.get("status") == "not_found":
+                    return error_response(result.get("message"), status.HTTP_404_NOT_FOUND)
+                return error_response(result.get("message"), status.HTTP_400_BAD_REQUEST)
+
+            output_serializer = CustomerReadOutputSerializer(result.get("customer"))
+            return success_response(
+                result.get("message"),
+                status.HTTP_200_OK,
+                data={
+                    "customer": output_serializer.data,
+                    "assigned_sales_reps_count": result.get("assigned_sales_reps_count", 0),
+                    "assigned_colonies_count": result.get("assigned_colonies_count", 0),
+                },
+            )
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+        except Exception as exc:
+            logger.error(f"Error updating customer: {exc}", exc_info=True)
+            return error_response("Failed to update customer.", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete(self, request, pk):
+        try:
+            company = Company.objects.get(user=request.user)
+            success = delete_customer(pk, company)
+            if not success:
+                return error_response("Customer not found.", status.HTTP_404_NOT_FOUND)
+
+            return success_response("Customer deleted successfully.", status.HTTP_204_NO_CONTENT)
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+        except Exception as exc:
+            logger.error(f"Error deleting customer: {exc}", exc_info=True)
+            return error_response("Failed to delete customer.", status.HTTP_500_INTERNAL_SERVER_ERROR)

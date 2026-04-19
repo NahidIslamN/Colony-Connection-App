@@ -1,9 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-
 from apps.managements.models import Colony, Company, Customer, SalesRepresentative
-
 User = get_user_model()
+
 
 
 class SafeUserOutputSerializer(serializers.ModelSerializer):
@@ -75,8 +74,6 @@ class SalesRepresentativeColonyOutputSerializer(serializers.ModelSerializer):
         )
 
 
-
-
 class SalesRepresentativeReadOutputSerializer001(serializers.ModelSerializer):
     """Read-only serializer for list/detail views with assigned colonies."""
 
@@ -92,7 +89,6 @@ class SalesRepresentativeReadOutputSerializer001(serializers.ModelSerializer):
             "email",
             "phone",
         )
-
 
 
 class SalesRepresentativeReadOutputSerializer(serializers.ModelSerializer):
@@ -138,6 +134,63 @@ class CustomerOutputSerializer(serializers.ModelSerializer):
             "location_url",
             "latitude",
             "longitude",
+        )
+
+
+class CustomerAssignedSalesRepOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SalesRepresentative
+        fields = (
+            "id",
+            "full_name",
+            "status",
+            "email",
+            "phone",
+        )
+
+
+class CustomerColonyOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Colony
+        fields = (
+            "id",
+            "name",
+            "region",
+            "status",
+            "location_url",
+            "latitude",
+            "longitude",
+        )
+
+
+class CustomerReadOutputSerializer(serializers.ModelSerializer):
+    user = SafeUserOutputSerializer(read_only=True)
+    sales_reps = CustomerAssignedSalesRepOutputSerializer(many=True, read_only=True)
+    colonies = CustomerColonyOutputSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Customer
+        fields = (
+            "id",
+            "owner_company",
+            "user",
+            "owner_name",
+            "company_name",
+            "industry",
+            "company_type",
+            "email",
+            "phone",
+            "status",
+            "street_address",
+            "city",
+            "state",
+            "postal_code",
+            "country",
+            "location_url",
+            "latitude",
+            "longitude",
+            "sales_reps",
+            "colonies",
         )
 
 
