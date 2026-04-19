@@ -11,14 +11,27 @@ class Company(models.Model):
     ceo_name = models.CharField(max_length=250)
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    plan = models.ForeignKey("SubscribePlan", on_delete=models.SET_NULL, null=True, blank=True)
-    subscription_package = models.ForeignKey("SubscribePlan", on_delete=models.SET_NULL, null=True, blank=True)
+    plan = models.ForeignKey(
+        "SubscribePlan",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="companies_by_plan",
+    )
+    subscription_package = models.ForeignKey(
+        "SubscribePlan",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="companies_by_subscription_package",
+    )
     is_subscribe = models.BooleanField(default=False)
     expire_date = models.DateField()
 
     def __str__(self):
         return self.company_name
     
+
 
 class SalesRepresentative(models.Model):
     STATUS_CHOICES = (
@@ -37,6 +50,7 @@ class SalesRepresentative(models.Model):
 
     def __str__(self):
         return self.full_name
+
 
 
 class Customer(models.Model):
@@ -69,6 +83,7 @@ class Customer(models.Model):
         return self.company_name
     
 
+
 class Colony(models.Model):
     colony_owner = models.ForeignKey("Company", on_delete=models.CASCADE)
 
@@ -97,6 +112,7 @@ class Colony(models.Model):
         unique_together = ('name', 'region')
     
 
+
 class VisitColony(models.Model):
     colony = models.ForeignKey("Colony", on_delete=models.CASCADE)
     date = models.DateField()
@@ -116,12 +132,14 @@ class VisitColony(models.Model):
     is_visited = models.BooleanField(default=True)
 
 
+
 class CustomerNote(models.Model):
     date = models.DateField()
     customer = models.ForeignKey("Customer", on_delete=models.CASCADE)
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
 
 
 class CustomerMechanary(models.Model):
@@ -137,3 +155,4 @@ class CustomerMechanary(models.Model):
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+

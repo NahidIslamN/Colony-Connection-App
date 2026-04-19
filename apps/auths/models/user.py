@@ -5,10 +5,16 @@ from apps.auths.managers import CustomUserManager
 
 
 class CustomUser(AbstractUser):
+    USER_ROLE = (
+        ("admin","Admin"),
+        ("company", "Company"),
+        ("user", "User")
+    )
     username = None
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=250, default="")
     status = models.BooleanField(default=False)
+    role = models.CharField(max_length=250, choices=USER_ROLE, default='company')
     phone = models.CharField(max_length=15, null=True, blank=True)
     is_email_verified = models.BooleanField(default=False)
     is_phone_verified = models.BooleanField(default=True)
