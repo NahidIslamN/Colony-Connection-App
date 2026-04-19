@@ -80,6 +80,11 @@ class Customer(models.Model):
 
 
 class Colony(models.Model):
+    STATUS_CHOICES = (
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+        ("paused", "Paused"),
+    )
     colony_owner = models.ForeignKey("Company", on_delete=models.CASCADE)
 
     name = models.CharField(max_length=250, db_index=True)
@@ -96,6 +101,7 @@ class Colony(models.Model):
         related_name='colonies',
         blank=True,
     )
+    status = models.CharField(max_length=250, choices=STATUS_CHOICES, default='paused')
 
     location_url = models.URLField(verbose_name='colony_location')
 

@@ -77,7 +77,7 @@ class CustomerAdmin(admin.ModelAdmin):
 
 @admin.register(Colony)
 class ColonyAdmin(admin.ModelAdmin):
-    list_display = ("name", "region", "colony_owner", "latitude", "longitude")
+    list_display = ("name", "region", "colony_owner", "status", "latitude", "longitude")
     search_fields = ("name", "region", "colony_owner__company_name")
     list_filter = ("region", "colony_owner")
     autocomplete_fields = ("colony_owner", "sales_reps", "customers")

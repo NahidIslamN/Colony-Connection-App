@@ -101,6 +101,7 @@ class ColonyOutputSerializer(serializers.ModelSerializer):
             "region",
             "sales_reps",
             "customers",
+            "status",
             "location_url",
             "latitude",
             "longitude",

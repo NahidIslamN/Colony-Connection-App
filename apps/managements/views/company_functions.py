@@ -2,7 +2,6 @@ import logging
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
@@ -13,8 +12,12 @@ from apps.managements.services import (
     create_colony,
     delete_colony,
     get_colonies_for_company,
+    get_colonies_count_for_company,
+    get_total_customer_count_for_company,
+    get_active_colonies_count_for_company,
     get_colony_by_id,
     update_colony,
+    
 )
 from core.custom_permission import IsCompany
 from core.pagination import CustomPagination
@@ -24,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class ColonyListCreateAPIView(APIView):
-    permission_classes = [IsAuthenticated, IsCompany]
+    permission_classes = [IsCompany]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
     pagination_class = CustomPagination
 
@@ -96,40 +99,40 @@ class ColonyDetailAPIView(APIView):
                 status.HTTP_404_NOT_FOUND,
             )
 
-    def put(self, request, pk):
-        serializer = ColonyCreateUpdateInputSerializer(data=request.data)
-        if not serializer.is_valid():
-            return error_response(
-                "Validation error.",
-                status.HTTP_400_BAD_REQUEST,
-                errors=serializer.errors,
-            )
+    # def put(self, request, pk):
+    #     serializer = ColonyCreateUpdateInputSerializer(data=request.data)
+    #     if not serializer.is_valid():
+    #         return error_response(
+    #             "Validation error.",
+    #             status.HTTP_400_BAD_REQUEST,
+    #             errors=serializer.errors,
+    #         )
 
-        try:
-            company = Company.objects.get(user=request.user)
-            colony = update_colony(pk, company, serializer.validated_data)
-            if not colony:
-                return error_response(
-                    "Colony not found.",
-                    status.HTTP_404_NOT_FOUND,
-                )
-            output_serializer = ColonyOutputSerializer(colony)
-            return success_response(
-                "Colony updated successfully.",
-                status.HTTP_200_OK,
-                data=output_serializer.data,
-            )
-        except Company.DoesNotExist:
-            return error_response(
-                "Company not found for this user.",
-                status.HTTP_404_NOT_FOUND,
-            )
-        except Exception as exc:
-            logger.error(f"Error updating colony: {exc}", exc_info=True)
-            return error_response(
-                "Failed to update colony.",
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+    #     try:
+    #         company = Company.objects.get(user=request.user)
+    #         colony = update_colony(pk, company, serializer.validated_data)
+    #         if not colony:
+    #             return error_response(
+    #                 "Colony not found.",
+    #                 status.HTTP_404_NOT_FOUND,
+    #             )
+    #         output_serializer = ColonyOutputSerializer(colony)
+    #         return success_response(
+    #             "Colony updated successfully.",
+    #             status.HTTP_200_OK,
+    #             data=output_serializer.data,
+    #         )
+    #     except Company.DoesNotExist:
+    #         return error_response(
+    #             "Company not found for this user.",
+    #             status.HTTP_404_NOT_FOUND,
+    #         )
+    #     except Exception as exc:
+    #         logger.error(f"Error updating colony: {exc}", exc_info=True)
+    #         return error_response(
+    #             "Failed to update colony.",
+    #             status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         )
 
     def patch(self, request, pk):
         serializer = ColonyPatchInputSerializer(data=request.data, partial=True)
@@ -190,3 +193,37 @@ class ColonyDetailAPIView(APIView):
                 "Failed to delete colony.",
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+    
+
+
+
+
+class ColonyAnalyticsService(APIView):
+    permission_classes = [IsCompany]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    pagination_class = CustomPagination
+
+    def get(self, request):
+        try:
+            company = Company.objects.get(user=request.user)
+
+            total_colonies = get_colonies_count_for_company(company)
+            total_active_colonies = get_active_colonies_count_for_company(company)
+            total_customers = get_total_customer_count_for_company(company)
+
+            data = {
+                "total_colonies": total_colonies,
+                "total_active_colonies": total_active_colonies,
+                "total_customers": total_customers,
+            }
+
+            return success_response(
+                message="Company analytics retrieved successfully.",
+                status_code=status.HTTP_200_OK,
+                data=data
+            )
+        
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+
+        
