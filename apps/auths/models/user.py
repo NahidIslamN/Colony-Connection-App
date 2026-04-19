@@ -8,6 +8,7 @@ class CustomUser(AbstractUser):
     USER_ROLE = (
         ("admin","Admin"),
         ("company", "Company"),
+        ("sale_rep", "Saler"),
         ("user", "User")
     )
     username = None

@@ -11,13 +11,7 @@ class Company(models.Model):
     ceo_name = models.CharField(max_length=250)
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    plan = models.ForeignKey(
-        "SubscribePlan",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="companies_by_plan",
-    )
+    
     subscription_package = models.ForeignKey(
         "SubscribePlan",
         on_delete=models.SET_NULL,
@@ -40,8 +34,8 @@ class SalesRepresentative(models.Model):
         ('on_leave', 'On Leave'),
     )
     company = models.ForeignKey("Company", on_delete=models.CASCADE)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
 
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=250)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='inactive')
 
@@ -54,8 +48,9 @@ class SalesRepresentative(models.Model):
 
 
 class Customer(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    owner_company = models.ForeignKey("Company", on_delete=models.CASCADE)
 
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     owner_name = models.CharField(max_length=250)
     company_name = models.CharField(max_length=250)
     industry = models.CharField(max_length=100)
@@ -88,16 +83,18 @@ class Colony(models.Model):
     colony_owner = models.ForeignKey("Company", on_delete=models.CASCADE)
 
     name = models.CharField(max_length=250, db_index=True)
-    region = models.CharField(max_length=250, db_index=True)
+    region = models.CharField(max_length=250, null=True, db_index=False)
 
     sales_reps = models.ManyToManyField(
         "SalesRepresentative",
-        related_name='colonies'
+        related_name='colonies',
+        blank=True,
     )
 
     customers = models.ManyToManyField(
         "Customer",
-        related_name='colonies'
+        related_name='colonies',
+        blank=True,
     )
 
     location_url = models.URLField(verbose_name='colony_location')
@@ -107,9 +104,6 @@ class Colony(models.Model):
 
     def __str__(self):
         return self.name
-
-    class Meta:
-        unique_together = ('name', 'region')
     
 
 
