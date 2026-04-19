@@ -62,7 +62,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django_celery_beat",
     "apps.auths.apps.AuthsConfig",
-    "apps.chats.apps.ChatsConfig",
     "apps.profiles.apps.ProfilesConfig",
     "apps.social_auth.apps.SocialAuthConfig",
     "apps.notifications.apps.NotificationsConfig",
@@ -78,7 +77,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "core.middleware.chat_activity.UpdateLastActivityMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -224,7 +222,6 @@ SECURE_HSTS_PRELOAD = not DEBUG
 
 MIGRATION_MODULES = {
     "auths": "db.migrations.auths",
-    "chats": "db.migrations.chats",
     "notifications": "db.migrations.notifications",
     "profiles": "db.migrations.profiles",
 }
