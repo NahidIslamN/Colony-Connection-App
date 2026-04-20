@@ -140,6 +140,15 @@ class VisitColony(models.Model):
     )
     is_visited = models.BooleanField(default=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["colony", "date"],
+                name="unique_visit_colony_per_day",
+            )
+        ]
+        ordering = ["date", "colony_id"]
+
 
 
 class CustomerNote(models.Model):
