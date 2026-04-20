@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "apps.social_auth.apps.SocialAuthConfig",
     "apps.notifications.apps.NotificationsConfig",
     "apps.managements.apps.ManagementsConfig",
+    "apps.sales_team.apps.SalesTeamConfig",
 ]
 
 MIDDLEWARE = [
