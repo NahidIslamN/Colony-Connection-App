@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from apps.managements.models import Colony, Company, Customer, SalesRepresentative
+from apps.managements.models import Colony, Company, Customer, SalesRepresentative, SubscribePlan, SupportFile, SupportModel
 User = get_user_model()
 
 
@@ -42,6 +42,28 @@ class CompanyOutputSerializer(serializers.ModelSerializer):
             "is_subscribe",
             "expire_date",
         )
+
+
+class SubscriptionPlanOutputSerializer(serializers.ModelSerializer):
+    is_current_plan = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SubscribePlan
+        fields = (
+            "id",
+            "plan_Name",
+            "price_monthly",
+            "price_yearly",
+            "user_limit",
+            "colony_limit",
+            "is_unlimit_users",
+            "is_unlimit_colony",
+            "is_current_plan",
+        )
+
+    def get_is_current_plan(self, obj):
+        current_plan = self.context.get("current_plan")
+        return bool(current_plan and current_plan.id == obj.id)
 
 
 class SalesRepresentativeOutputSerializer(serializers.ModelSerializer):
@@ -213,3 +235,17 @@ class ColonyOutputSerializer(serializers.ModelSerializer):
             "latitude",
             "longitude",
         )
+
+
+class SupportFileOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SupportFile
+        fields = ("id", "file", "created_at", "updated_at")
+
+
+class SupportMessageOutputSerializer(serializers.ModelSerializer):
+    files = SupportFileOutputSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SupportModel
+        fields = ("id", "full_name", "email", "message", "files", "created_at")

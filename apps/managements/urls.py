@@ -7,6 +7,7 @@ from .views.company_functions import (
     ColonyListCreateAPIView, 
     ColonyAnalyticsService,
     ColoniesForAssignmentAPIView,
+    SubscriptionPlans,
     SalesRepsForAssignmentAPIView,
     SalseRepList,
     SalesRepresentativeDetailAPIView,
@@ -14,6 +15,7 @@ from .views.company_functions import (
     AssignSalesRepToColoniesAPIView,
     GetSalesRepColoniesAPIView,
 )
+from .views.api import SupportMessageCreateAPIView
 
 urlpatterns = [
     path("company/colonies/", ColonyListCreateAPIView.as_view(), name="colony-list-create"),
@@ -32,4 +34,8 @@ urlpatterns = [
 
     path("company/sales-representatives/<int:sales_rep_id>/assign-colonies/", AssignSalesRepToColoniesAPIView.as_view(), name="assign-sales-rep-colonies"),
     path("company/sales-representatives/<int:sales_rep_id>/colonies/", GetSalesRepColoniesAPIView.as_view(), name="sales-rep-colonies"),
+
+    path("company/subscription-plans/", SubscriptionPlans.as_view(), name="subscription-plans"),
+
+    path("support/messages/", SupportMessageCreateAPIView.as_view(), name="support-message-create"),
 ]

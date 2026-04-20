@@ -25,6 +25,7 @@ from .customer_service import (
     get_customers_for_company,
     update_customer,
 )
+from .support_service import create_support_message
 
 __all__ = [
     "create_colony",
@@ -48,4 +49,5 @@ __all__ = [
     "create_customer_with_user",
     "update_customer",
     "delete_customer",
+    "create_support_message",
 ]

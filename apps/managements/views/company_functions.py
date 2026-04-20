@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
-from apps.managements.models import Company, Colony
+from apps.managements.models import Company, Colony,SubscribePlan
 from apps.managements.serializers.input import (
     CustomerCreateUpdateInputSerializer,
     CustomerPatchInputSerializer,
@@ -21,6 +21,7 @@ from apps.managements.serializers.output import (
     CustomerReadOutputSerializer,
     SalesRepresentativeOutputSerializer,
     SalesRepresentativeReadOutputSerializer,
+    SubscriptionPlanOutputSerializer,
 )
 from apps.managements.services import (
     create_customer_with_user,
@@ -614,3 +615,38 @@ class CustomerDetailAPIView(APIView):
         except Exception as exc:
             logger.error(f"Error deleting customer: {exc}", exc_info=True)
             return error_response("Failed to delete customer.", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class SubscriptionPlans(APIView):
+    permission_classes = [IsCompany]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    def get(self, request):
+        try:
+            company = Company.objects.select_related("subscription_package").get(user=request.user)
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+
+        current_plan = company.subscription_package
+        subscription_plans = SubscribePlan.objects.all().order_by("id")
+
+        serializer = SubscriptionPlanOutputSerializer(
+            subscription_plans,
+            many=True,
+            context={"current_plan": current_plan},
+        )
+
+        return success_response(
+            message="Subscription plans retrieved successfully.",
+            status_code=status.HTTP_200_OK,
+            data={
+                "current_plan": SubscriptionPlanOutputSerializer(
+                    current_plan,
+                    context={"current_plan": current_plan},
+                ).data if current_plan else None,
+                "plans": serializer.data,
+            },
+        )
+
+

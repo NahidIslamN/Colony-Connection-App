@@ -225,3 +225,17 @@ class CustomerPatchInputSerializer(serializers.Serializer):
     )
 
     machinery_info = serializers.JSONField(required=False)
+
+
+############################## Support Management ##########################
+
+
+class SupportMessageCreateInputSerializer(serializers.Serializer):
+    full_name = serializers.CharField(max_length=250)
+    email = serializers.EmailField()
+    message = serializers.CharField()
+    files = serializers.ListField(
+        child=serializers.FileField(),
+        required=False,
+        allow_empty=True,
+    )
