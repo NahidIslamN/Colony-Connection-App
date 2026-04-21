@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "apps.notifications.apps.NotificationsConfig",
     "apps.managements.apps.ManagementsConfig",
     "apps.sales_team.apps.SalesTeamConfig",
+    "apps.admin_dashboard.apps.AdminDashboardConfig",
 ]
 
 MIDDLEWARE = [
