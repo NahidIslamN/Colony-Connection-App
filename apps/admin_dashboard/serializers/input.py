@@ -2,8 +2,15 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from apps.managements.models import Company, SubscribePlan
+from apps.admin_dashboard.models import TermsCondition
 
 User = get_user_model()
+
+
+class TermsConditionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TermsCondition
+        fields = "__all__"
 
 
 class CompanyManagementBaseSerializer(serializers.Serializer):

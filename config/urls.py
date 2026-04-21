@@ -3,6 +3,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
 
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("apps.auths.urls")),
@@ -12,6 +13,7 @@ urlpatterns = [
     path("api/v1/managements/", include("apps.managements.urls")),
     path("api/v1/sales_team/", include("apps.sales_team.urls")),
     path("api/v1/admin_dashboard/", include("apps.admin_dashboard.urls")),
+    
     
 ]
 
