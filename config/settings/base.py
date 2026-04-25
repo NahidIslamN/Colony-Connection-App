@@ -38,7 +38,7 @@ _allowed_hosts = config("ALLOWED_HOSTS", default="")
 if _allowed_hosts:
     ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts.split(",") if host.strip()]
 elif DEBUG:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+    ALLOWED_HOSTS = ["*"]
 else:
     raise ImproperlyConfigured("ALLOWED_HOSTS must be set in production.")
 
