@@ -12,6 +12,82 @@ from apps.managements.models import (
     VisitColony,
 )
 
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.conf import settings
+
+
+@transaction.atomic
+def create_customer_for_colony(sales_rep: SalesRepresentative, colony_id: int, user_payload: dict, customer_payload: dict):
+    """Create a user and customer, then attach the customer to the colony atomically.
+
+    Raises serializers.ValidationError on validation problems or returns created Customer instance.
+    """
+    from rest_framework import serializers
+
+    # verify colony belongs to this sales rep
+    colony = (
+        Colony.objects.select_for_update()
+        .prefetch_related('customers')
+        .filter(id=colony_id, sales_reps=sales_rep)
+        .first()
+    )
+
+    if not colony:
+        return None
+
+    company = sales_rep.company
+
+    User = get_user_model()
+
+    # create user (use a static/default password for created customers)
+    email = user_payload.get('email')
+    # static password: prefer setting in settings, fallback to a safe default
+    default_password = getattr(settings, 'CUSTOMER_DEFAULT_PASSWORD', 'ChangeMe123!')
+    full_name = user_payload.get('full_name') or customer_payload.get('owner_name')
+    phone = user_payload.get('phone')
+    image = user_payload.get('image')
+
+    if User.objects.filter(email=email).exists():
+        raise serializers.ValidationError({'email': 'User with this email already exists.'})
+
+    user = User.objects.create_user(email=email, password=default_password)
+    # populate user fields from owner_name/email/phone
+    user.full_name = full_name or ''
+    user.role = 'user'
+    if phone:
+        user.phone = phone
+    if image and isinstance(image, InMemoryUploadedFile):
+        user.image = image
+    user.save()
+
+    # create customer
+    from apps.managements.models import Customer
+
+    customer = Customer.objects.create(
+        owner_company=company,
+        user=user,
+        owner_name=customer_payload.get('owner_name'),
+        company_name=customer_payload.get('company_name'),
+        industry=customer_payload.get('industry') or '',
+        company_type=customer_payload.get('company_type') or '',
+        email=user.email,
+        phone=phone or '',
+        street_address=customer_payload.get('street_address') or '',
+        city=customer_payload.get('city') or '',
+        state=customer_payload.get('state') or '',
+        postal_code=customer_payload.get('postal_code') or '',
+        country=customer_payload.get('country') or '',
+        location_url=customer_payload.get('location_url') or None,
+        latitude=customer_payload.get('latitude'),
+        longitude=customer_payload.get('longitude'),
+    )
+
+    # attach to colony
+    colony.customers.add(customer)
+
+    return customer
+
 
 def get_sales_rep_for_user(user):
     return SalesRepresentative.objects.select_related("company").filter(user=user).first()

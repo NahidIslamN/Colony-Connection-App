@@ -21,6 +21,12 @@ from core.custom_permission import IsSalesRep
 from core.pagination import CustomPagination
 from core.responses import error_response, success_response
 
+from apps.sales_team.serializers.input import CustomerCreateSerializer
+from apps.sales_team.services.visit_report_service import (
+            get_sales_rep_for_user,
+            create_customer_for_colony,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -136,3 +142,74 @@ class VisitColonyReport_SpecificDay(APIView):
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         
+
+
+
+
+class CustomerListCreateAPIView(APIView):
+    permission_classes = [IsSalesRep]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    pagination_class = CustomPagination
+
+
+
+    def post(self, request, colony_id):
+
+        # minimal inline output used; no management serializer imported
+        sales_rep = get_sales_rep_for_user(request.user)
+        if not sales_rep:
+            return error_response(
+                "Sales representative profile not found.", status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = CustomerCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response(
+                "Validation error.", status.HTTP_400_BAD_REQUEST, errors=serializer.errors
+            )
+
+        try:
+            user_payload = {
+                'email': serializer.validated_data.get('email'),
+                # password intentionally omitted — service uses default/static password
+                'full_name': serializer.validated_data.get('owner_name'),
+                'phone': serializer.validated_data.get('phone'),
+                'image': request.FILES.get('image') or serializer.validated_data.get('image'),
+            }
+            customer_payload = {
+                k: serializer.validated_data.get(k)
+                for k in [
+                    'owner_name', 'company_name', 'industry', 'company_type',
+                    'street_address', 'city', 'state', 'postal_code', 'country',
+                    'location_url', 'latitude', 'longitude'
+                ]
+            }
+
+            customer = create_customer_for_colony(
+                sales_rep=sales_rep, colony_id=colony_id, user_payload=user_payload, customer_payload=customer_payload
+            )
+
+            if not customer:
+                return error_response(
+                    "Colony not found or not assigned to this sales representative.",
+                    status.HTTP_404_NOT_FOUND,
+                )
+
+            # minimal output
+            data = {
+                'id': customer.id,
+                'company_name': customer.company_name,
+                'owner_name': customer.owner_name,
+                'email': customer.email,
+                'phone': customer.phone,
+            }
+
+            return success_response(
+                "Customer created and attached to colony successfully.", status.HTTP_201_CREATED, data=data
+            )
+        except Exception as exc:
+            logger.error(f"Error creating customer: {exc}", exc_info=True)
+            return error_response(
+                "Failed to create customer.", status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+

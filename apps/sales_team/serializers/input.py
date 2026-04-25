@@ -33,3 +33,44 @@ class VisitColonyReportUpdateInputSerializer(serializers.Serializer):
 	mechineries = VisitCustomerMachineryInputSerializer(many=True, required=False)
 
 
+
+class CustomerCreateSerializer(serializers.Serializer):
+	# User fields
+	
+	image = serializers.ImageField(required=False, allow_null=True)
+
+	# Customer fields
+	owner_name = serializers.CharField(required=True, max_length=250)
+	company_name = serializers.CharField(required=True, max_length=250)
+	email = serializers.EmailField(required=True)
+	phone = serializers.CharField(required=True, allow_blank=True, max_length=15)
+	industry = serializers.CharField(required=False, allow_blank=True, max_length=100)
+	company_type = serializers.CharField(required=False, allow_blank=True, max_length=100)
+	street_address = serializers.CharField(required=False, allow_blank=True)
+	city = serializers.CharField(required=False, allow_blank=True, max_length=100)
+	state = serializers.CharField(required=False, allow_blank=True, max_length=100)
+	postal_code = serializers.CharField(required=False, allow_blank=True, max_length=20)
+	country = serializers.CharField(required=False, allow_blank=True, max_length=100)
+	location_url = serializers.URLField(required=False, allow_blank=True)
+	latitude = serializers.FloatField(required=False, allow_null=True)
+	longitude = serializers.FloatField(required=False, allow_null=True)
+
+	def validate_email(self, value):
+		from django.contrib.auth import get_user_model
+
+		User = get_user_model()
+		if User.objects.filter(email=value).exists():
+			raise serializers.ValidationError("User with this email already exists.")
+		return value
+
+	def validate(self, data):
+		# ensure unique customer email if provided
+		cust_email = data.get("email")
+		if cust_email:
+			from apps.managements.models import Customer
+
+			if Customer.objects.filter(email=cust_email).exists():
+				raise serializers.ValidationError({"email": "Customer with this email already exists."})
+		return data
+
+
