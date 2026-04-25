@@ -14,6 +14,7 @@ from .terms_condition_services import (
     delete_terms_condition,
     update_terms_condition,
 )
+from .analytics_service import get_admin_analytics
 
 __all__ = [
 	"CompanyServiceError",
@@ -28,4 +29,5 @@ __all__ = [
 	"create_terms_condition",
 	"update_terms_condition",
 	"delete_terms_condition",
+	"get_admin_analytics",
 ]

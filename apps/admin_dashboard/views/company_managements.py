@@ -194,3 +194,29 @@ class CompanyManagementAdminView(APIView):
             status_code=status.HTTP_200_OK,
             data={"deleted": True, "company_id": pk},
         )
+
+
+
+
+class DataAnalyticsAdminView(APIView):
+    permission_classes = [IsAdmin]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+
+    def get(self, request):
+        """Fetch system-wide analytics for admin dashboard."""
+        try:
+            from apps.admin_dashboard.services.analytics_service import get_admin_analytics
+
+            analytics = get_admin_analytics()
+            return success_response(
+                "Analytics retrieved successfully.",
+                status_code=status.HTTP_200_OK,
+                data=analytics,
+            )
+        except Exception as exc:
+            logger.exception("Error fetching admin analytics")
+            return error_response(
+                "Failed to retrieve analytics.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                errors={"detail": str(exc)},
+            )

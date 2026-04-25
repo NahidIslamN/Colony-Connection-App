@@ -1,9 +1,11 @@
 from django.urls import path
 
-from apps.admin_dashboard.views.company_managements import CompanyManagementAdminView, SupportMessageAdminView
+from apps.admin_dashboard.views.company_managements import CompanyManagementAdminView, SupportMessageAdminView, DataAnalyticsAdminView
 from apps.admin_dashboard.views.termscondition import TermsConditionAdminView, TermsConditionPublicView
 
 urlpatterns = [
+    path("data-analytics/", DataAnalyticsAdminView.as_view(), name="admin-dashboard-company-list-create"),
+    
 	path("companies/", CompanyManagementAdminView.as_view(), name="admin-dashboard-company-list-create"),
 	path("companies/<int:pk>/", CompanyManagementAdminView.as_view(), name="admin-dashboard-company-detail"),
 	path("supports/", SupportMessageAdminView.as_view(), name="admin-dashboard-support-messages"),
