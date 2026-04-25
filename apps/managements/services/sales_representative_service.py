@@ -1,11 +1,48 @@
 from apps.managements.models import Company, SalesRepresentative, Colony
 from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
 
 User = get_user_model()
 
 
 def get_sales_reps_for_company(company: Company):
     return SalesRepresentative.objects.filter(company=company).select_related("user").prefetch_related("colonies")
+
+
+def get_sales_reps_with_performance(company: Company, recent_days: int = 30):
+    """Return sales reps queryset annotated with performance-related counts.
+
+    Annotations added:
+    - assigned_colonies_count
+    - assigned_customers_count
+    - completed_customers_count
+    - recent_completed_count (completed customers in the last `recent_days` days)
+
+    These annotations avoid N+1 queries so the view can compute a
+    stable performance_score per rep in a single query.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+
+    today = timezone.localdate()
+    recent_threshold = today - timedelta(days=recent_days - 1)
+
+    qs = (
+        SalesRepresentative.objects.filter(company=company)
+        .select_related("user")
+        .annotate(
+            assigned_colonies_count=Count("colonies", distinct=True),
+            assigned_customers_count=Count("colonies__customers", distinct=True),
+            completed_customers_count=Count("colonies__visitcolony__completed_customers", distinct=True),
+            recent_completed_count=Count(
+                "colonies__visitcolony__completed_customers",
+                filter=Q(colonies__visitcolony__date__gte=recent_threshold),
+                distinct=True,
+            ),
+        )
+    )
+
+    return qs
 
 
 def get_sales_rep_by_id(sales_rep_id: int, company: Company):

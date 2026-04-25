@@ -40,6 +40,7 @@ from apps.managements.services import (
     get_colony_by_id,
     get_sales_rep_by_id,
     get_sales_reps_for_company,
+    get_sales_reps_with_performance,
     update_customer,
     update_colony,
     update_sales_rep,
@@ -231,15 +232,44 @@ class SalseRepList(APIView):
         try:
             company = Company.objects.get(user=request.user)
 
-            sales_reps = get_sales_reps_for_company(company)
+            # use optimized annotated queryset to include counters for performance calculation
+            sales_reps = get_sales_reps_with_performance(company)
 
         except Company.DoesNotExist:
             return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
         
         paginator = self.pagination_class()
-        paginated_colonies = paginator.paginate_queryset(sales_reps, request)
-        serializer = SalesRepresentativeReadOutputSerializer(paginated_colonies, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        page = paginator.paginate_queryset(sales_reps, request)
+        serializer = SalesRepresentativeReadOutputSerializer(page, many=True)
+
+        # enrich serialized data with an optimized `performance_score` computed from annotations
+        serialized = serializer.data
+        enriched = []
+        for idx, rep in enumerate(page):
+            item = serialized[idx].copy()
+            # read annotation counts (defaults to 0)
+            assigned_customers = int(getattr(rep, 'assigned_customers_count', 0) or 0)
+            completed_customers = int(getattr(rep, 'completed_customers_count', 0) or 0)
+            recent_completed = int(getattr(rep, 'recent_completed_count', 0) or 0)
+
+            # performance_score: primary metric = completed / assigned_customers
+            if assigned_customers <= 0:
+                score = 0
+            else:
+                score = round((completed_customers / assigned_customers) * 100)
+
+            # small recent activity bonus (up to +10 points)
+            if assigned_customers > 0:
+                recent_bonus = min(10, round((recent_completed / max(1, assigned_customers)) * 10))
+                score = min(100, score + recent_bonus)
+
+            item['performance_score'] = int(score)
+            item['assigned_colonies_count'] = int(getattr(rep, 'assigned_colonies_count', 0) or 0)
+            item['assigned_customers_count'] = assigned_customers
+            item['completed_customers_count'] = completed_customers
+            enriched.append(item)
+
+        return paginator.get_paginated_response(enriched)
 
 
 #################################### Sale Rep Managements Views #####################
