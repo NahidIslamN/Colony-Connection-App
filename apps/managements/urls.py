@@ -1,4 +1,7 @@
 from django.urls import path
+from .views.dashboard import (
+    DashboadDataAnylize
+)
 
 from .views.company_functions import (
     CustomerDetailAPIView,
@@ -18,6 +21,7 @@ from .views.company_functions import (
 from .views.api import SupportMessageCreateAPIView
 
 urlpatterns = [
+    path('company/dashboad/analytics/', DashboadDataAnylize.as_view(), name="dashboard"),
     path("company/colonies/", ColonyListCreateAPIView.as_view(), name="colony-list-create"),
     path("company/colonies/<int:pk>/", ColonyDetailAPIView.as_view(), name="colony-detail"),
     path("company/colonies/analytics/", ColonyAnalyticsService.as_view(), name='analytics'),
