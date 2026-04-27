@@ -51,6 +51,7 @@ if "*" in ALLOWED_HOSTS:
 INSTALLED_APPS = [
     "daphne",
     "channels",
+    "corsheaders",
     "core.apps.CoreConfig",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -72,6 +73,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "core.middleware.request_id.RequestIdMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -218,6 +220,17 @@ WS_MESSAGE_RATE_WINDOW_SECONDS = config("WS_MESSAGE_RATE_WINDOW_SECONDS", cast=i
 ONESIGNAL_APP_ID = config("ONESIGNAL_APP_ID", default="")
 ONESIGNAL_API_KEY = config("ONESIGNAL_API_KEY", default="")
 CUSTOMER_DEFAULT_PASSWORD = config("CUSTOMER_DEFAULT_PASSWORD", default="")
+
+_cors_allowed_origins = config("CORS_ALLOWED_ORIGINS", default="http://localhost:3000").strip()
+CORS_ALLOWED_ORIGINS = [origin.strip().rstrip("/") for origin in _cors_allowed_origins.split(",") if origin.strip()]
+if DEBUG and "http://localhost:3000" not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3000")
+CORS_ALLOW_CREDENTIALS = True
+
+_csrf_trusted_origins = config("CSRF_TRUSTED_ORIGINS", default="http://localhost:3000").strip()
+CSRF_TRUSTED_ORIGINS = [origin.strip().rstrip("/") for origin in _csrf_trusted_origins.split(",") if origin.strip()]
+if DEBUG and "http://localhost:3000" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("http://localhost:3000")
 
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
