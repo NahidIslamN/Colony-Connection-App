@@ -220,6 +220,7 @@ WS_MESSAGE_RATE_WINDOW_SECONDS = config("WS_MESSAGE_RATE_WINDOW_SECONDS", cast=i
 ONESIGNAL_APP_ID = config("ONESIGNAL_APP_ID", default="")
 ONESIGNAL_API_KEY = config("ONESIGNAL_API_KEY", default="")
 CUSTOMER_DEFAULT_PASSWORD = config("CUSTOMER_DEFAULT_PASSWORD", default="")
+BASE_URL = config("BASE_URL", default="").strip().rstrip("/")
 
 _dev_frontend_origins = [
     "http://localhost:3000",
