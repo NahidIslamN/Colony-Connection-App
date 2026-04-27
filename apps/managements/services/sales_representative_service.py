@@ -5,8 +5,28 @@ from django.db.models import Count, Q
 User = get_user_model()
 
 
-def get_sales_reps_for_company(company: Company):
-    return SalesRepresentative.objects.filter(company=company).select_related("user").prefetch_related("colonies")
+def get_sales_reps_for_company(company: Company, keyword=None):
+    queryset = (
+        SalesRepresentative.objects.filter(company=company)
+        .select_related("user")
+        .prefetch_related("colonies")
+    )
+
+    if keyword:
+        keyword = keyword.strip()
+        if keyword:
+            queryset = queryset.filter(
+                Q(full_name__icontains=keyword)
+                | Q(status__icontains=keyword)
+                | Q(phone__icontains=keyword)
+                | Q(email__icontains=keyword)
+            )
+
+    return queryset
+
+
+def get_active_sales_reps_count_for_company(company: Company) -> int:
+    return SalesRepresentative.objects.filter(company=company, status="active").count()
 
 
 def get_sales_reps_with_performance(company: Company, recent_days: int = 30):

@@ -38,6 +38,7 @@ from apps.managements.services import (
     get_total_customer_count_for_company,
     get_active_colonies_count_for_company,
     get_colony_by_id,
+    get_active_sales_reps_count_for_company,
     get_sales_rep_by_id,
     get_sales_reps_for_company,
     get_sales_reps_with_performance,
@@ -283,14 +284,18 @@ class SalesRepresentativeListCreateAPIView(APIView):
     def get(self, request):
         try:
             company = Company.objects.get(user=request.user)
-            sales_reps = get_sales_reps_for_company(company)
+            search = request.GET.get('search', None)
+            sales_reps = get_sales_reps_for_company(company, keyword=search)
+            active_sales_rep_count = get_active_sales_reps_count_for_company(company)
         except Company.DoesNotExist:
             return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
 
         paginator = self.pagination_class()
         paginated_sales_reps = paginator.paginate_queryset(sales_reps, request)
         serializer = SalesRepresentativeReadOutputSerializer(paginated_sales_reps, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        response = paginator.get_paginated_response(serializer.data)
+        response.data["active_salserep_count"] = active_sales_rep_count
+        return response
 
     def post(self, request):
         serializer = SalesRepresentativeCreateUpdateInputSerializer(data=request.data)
@@ -316,6 +321,7 @@ class SalesRepresentativeListCreateAPIView(APIView):
             
             sales_rep = result.get('sales_rep')
             output_serializer = SalesRepresentativeOutputSerializer(sales_rep)
+            
             
             return success_response(
                 result.get('message'),

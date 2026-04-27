@@ -12,6 +12,7 @@ from .colony_service import (
 from .sales_representative_service import (
     delete_sales_rep,
     get_sales_rep_by_id,
+    get_active_sales_reps_count_for_company,
     get_sales_reps_for_company,
     get_sales_reps_with_performance,
     update_sales_rep,
@@ -40,6 +41,7 @@ __all__ = [
     "delete_colony",
     "get_sales_reps_with_performance",
     "get_sales_reps_for_company",
+    "get_active_sales_reps_count_for_company",
     "get_sales_rep_by_id",
     "get_sales_reps_with_performance",
     "update_sales_rep",
