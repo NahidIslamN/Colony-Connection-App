@@ -221,16 +221,28 @@ ONESIGNAL_APP_ID = config("ONESIGNAL_APP_ID", default="")
 ONESIGNAL_API_KEY = config("ONESIGNAL_API_KEY", default="")
 CUSTOMER_DEFAULT_PASSWORD = config("CUSTOMER_DEFAULT_PASSWORD", default="")
 
-_cors_allowed_origins = config("CORS_ALLOWED_ORIGINS", default="http://localhost:3000").strip()
+_dev_frontend_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://localhost:3000",
+    "https://127.0.0.1:3000",
+]
+
+_cors_allowed_origins = config("CORS_ALLOWED_ORIGINS", default=",".join(_dev_frontend_origins)).strip()
 CORS_ALLOWED_ORIGINS = [origin.strip().rstrip("/") for origin in _cors_allowed_origins.split(",") if origin.strip()]
-if DEBUG and "http://localhost:3000" not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append("http://localhost:3000")
+if DEBUG:
+    for origin in _dev_frontend_origins:
+        if origin not in CORS_ALLOWED_ORIGINS:
+            CORS_ALLOWED_ORIGINS.append(origin)
+
 CORS_ALLOW_CREDENTIALS = True
 
-_csrf_trusted_origins = config("CSRF_TRUSTED_ORIGINS", default="http://localhost:3000").strip()
+_csrf_trusted_origins = config("CSRF_TRUSTED_ORIGINS", default=",".join(_dev_frontend_origins)).strip()
 CSRF_TRUSTED_ORIGINS = [origin.strip().rstrip("/") for origin in _csrf_trusted_origins.split(",") if origin.strip()]
-if DEBUG and "http://localhost:3000" not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append("http://localhost:3000")
+if DEBUG:
+    for origin in _dev_frontend_origins:
+        if origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(origin)
 
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
