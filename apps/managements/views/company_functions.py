@@ -48,6 +48,7 @@ from apps.managements.services import (
     assign_sales_rep_to_colonies,
     get_colonies_for_sales_rep,
 )
+from apps.managements.services.subscription_limit_service import SubscriptionRestrictionError
 from core.custom_permission import IsCompany
 from core.pagination import CustomPagination
 from core.responses import error_response, success_response
@@ -95,6 +96,11 @@ class ColonyListCreateAPIView(APIView):
             return error_response(
                 "Company not found for this user.",
                 status.HTTP_404_NOT_FOUND,
+            )
+        except SubscriptionRestrictionError as exc:
+            return error_response(
+                str(exc),
+                status.HTTP_400_BAD_REQUEST,
             )
         except Exception as exc:
             logger.error(f"Error creating colony: {exc}", exc_info=True)
@@ -333,6 +339,8 @@ class SalesRepresentativeListCreateAPIView(APIView):
             )
         except Company.DoesNotExist:
             return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+        except SubscriptionRestrictionError as exc:
+            return error_response(str(exc), status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             logger.error(f"Error creating sales representative: {exc}", exc_info=True)
             return error_response("Failed to create sales representative.", status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -381,6 +389,8 @@ class SalesRepresentativeDetailAPIView(APIView):
             )
         except Company.DoesNotExist:
             return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+        except SubscriptionRestrictionError as exc:
+            return error_response(str(exc), status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             logger.error(f"Error updating sales representative: {exc}", exc_info=True)
             return error_response("Failed to update sales representative.", status.HTTP_500_INTERNAL_SERVER_ERROR)

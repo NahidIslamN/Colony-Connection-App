@@ -208,6 +208,12 @@ class CustomerListCreateAPIView(APIView):
                 "Customer created and attached to colony successfully.", status.HTTP_201_CREATED, data=data
             )
         except Exception as exc:
+            if isinstance(exc, ValidationError):
+                return error_response(
+                    "Validation error.",
+                    status.HTTP_400_BAD_REQUEST,
+                    errors=getattr(exc, "detail", str(exc)),
+                )
             logger.error(f"Error creating customer: {exc}", exc_info=True)
             return error_response(
                 "Failed to create customer.", status.HTTP_500_INTERNAL_SERVER_ERROR

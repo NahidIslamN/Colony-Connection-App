@@ -9,19 +9,19 @@ User = get_user_model()
 class ColonyInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Colony
-        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude')
+        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status")
 
 
 class ColonyCreateUpdateInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Colony
-        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude')
+        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status")
 
 
 class ColonyPatchInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Colony
-        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude')
+        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status")
         extra_kwargs = {
             'name': {'required': False},
             'region': {'required': False},

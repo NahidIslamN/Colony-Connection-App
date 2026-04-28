@@ -1,6 +1,13 @@
 from apps.managements.models import Company, SalesRepresentative, Colony
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Count, Q
+from apps.managements.services.subscription_limit_service import (
+    SubscriptionRestrictionError,
+    enforce_company_active_status_limits,
+    enforce_sales_rep_creation_allowed,
+    enforce_sales_rep_update_allowed,
+)
 
 User = get_user_model()
 
@@ -93,44 +100,57 @@ def create_sales_rep_with_user(company: Company, validated_data: dict) -> dict:
         dict with success status, user, sales_rep, and assigned_colonies_count
     """
     try:
-        # Step 1: Create User
-        user = User.objects.create_user(
-            email=validated_data.get('email'),
-            full_name=validated_data.get('full_name'),
-            phone=validated_data.get('phone'),
-            is_email_verified=True,
-            is_phone_verified=True
-        )
+        with transaction.atomic():
+            locked_company = enforce_sales_rep_creation_allowed(company)
 
-        user.set_password(validated_data.get('password'))
-        user.save()
-        
-        # Step 2: Create SalesRepresentative
-        sales_rep = SalesRepresentative.objects.create(
-            company=company,
-            user=user,
-            full_name=validated_data.get('full_name'),
-            status=validated_data.get('status', 'inactive'),
-            email=validated_data.get('email'),
-            phone=validated_data.get('phone')
-        )
-        
-        # Step 3: Assign colonies if provided
-        assigned_colonies_count = 0
-        colony_ids = validated_data.get('colony_ids', [])
-        
-        if colony_ids:
-            colonies = Colony.objects.filter(id__in=colony_ids, colony_owner=company)
-            for colony in colonies:
-                colony.sales_reps.add(sales_rep)
-            assigned_colonies_count = colonies.count()
-        
+            # Step 1: Create User
+            user = User.objects.create_user(
+                email=validated_data.get('email'),
+                full_name=validated_data.get('full_name'),
+                phone=validated_data.get('phone'),
+                is_email_verified=True,
+                is_phone_verified=True
+            )
+
+            user.set_password(validated_data.get('password'))
+            user.save()
+
+            # Step 2: Create SalesRepresentative
+            sales_rep = SalesRepresentative.objects.create(
+                company=locked_company,
+                user=user,
+                full_name=validated_data.get('full_name'),
+                status=validated_data.get('status', 'inactive'),
+                email=validated_data.get('email'),
+                phone=validated_data.get('phone')
+            )
+
+            # Step 3: Assign colonies if provided
+            assigned_colonies_count = 0
+            colony_ids = validated_data.get('colony_ids', [])
+
+            if colony_ids:
+                colonies = Colony.objects.filter(id__in=colony_ids, colony_owner=locked_company)
+                for colony in colonies:
+                    colony.sales_reps.add(sales_rep)
+                assigned_colonies_count = colonies.count()
+
+            enforce_company_active_status_limits(locked_company, lock_company=False)
+            sales_rep.refresh_from_db()
+
+            return {
+                "success": True,
+                "user": user,
+                "sales_rep": sales_rep,
+                "assigned_colonies_count": assigned_colonies_count,
+                "message": f"Sales Representative created successfully and assigned to {assigned_colonies_count} colonies"
+            }
+
+    except SubscriptionRestrictionError as e:
         return {
-            "success": True,
-            "user": user,
-            "sales_rep": sales_rep,
-            "assigned_colonies_count": assigned_colonies_count,
-            "message": f"Sales Representative created successfully and assigned to {assigned_colonies_count} colonies"
+            "success": False,
+            "message": str(e),
+            "error": str(e)
         }
     
     except Exception as e:
@@ -144,14 +164,19 @@ def create_sales_rep_with_user(company: Company, validated_data: dict) -> dict:
 
 
 def update_sales_rep(sales_rep_id: int, company: Company, validated_data: dict) -> SalesRepresentative:
-    sales_rep = get_sales_rep_by_id(sales_rep_id, company)
-    if not sales_rep:
-        return None
+    with transaction.atomic():
+        locked_company = enforce_sales_rep_update_allowed(company)
+        sales_rep = get_sales_rep_by_id(sales_rep_id, locked_company)
+        if not sales_rep:
+            return None
 
-    for key, value in validated_data.items():
-        setattr(sales_rep, key, value)
-    sales_rep.save()
-    return sales_rep
+        for key, value in validated_data.items():
+            setattr(sales_rep, key, value)
+        sales_rep.save()
+
+        enforce_company_active_status_limits(locked_company, lock_company=False)
+        sales_rep.refresh_from_db()
+        return sales_rep
 
 
 def delete_sales_rep(sales_rep_id: int, company: Company) -> bool:

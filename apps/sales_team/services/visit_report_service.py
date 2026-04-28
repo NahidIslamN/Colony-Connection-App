@@ -15,6 +15,8 @@ from apps.managements.models import (
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.conf import settings
+from apps.managements.services.subscription_limit_service import enforce_customer_creation_allowed
+from apps.managements.services.subscription_limit_service import enforce_company_active_status_limits
 
 
 @transaction.atomic
@@ -29,7 +31,7 @@ def create_customer_for_colony(sales_rep: SalesRepresentative, colony_id: int, u
     colony = (
         Colony.objects.select_for_update()
         .prefetch_related('customers')
-        .filter(id=colony_id, sales_reps=sales_rep)
+        .filter(id=colony_id, sales_reps=sales_rep, status="active")
         .first()
     )
 
@@ -37,6 +39,7 @@ def create_customer_for_colony(sales_rep: SalesRepresentative, colony_id: int, u
         return None
 
     company = sales_rep.company
+    enforce_customer_creation_allowed(company)
 
     User = get_user_model()
 
@@ -90,7 +93,16 @@ def create_customer_for_colony(sales_rep: SalesRepresentative, colony_id: int, u
 
 
 def get_sales_rep_for_user(user):
-    return SalesRepresentative.objects.select_related("company").filter(user=user).first()
+    sales_rep = SalesRepresentative.objects.select_related("company").filter(user=user).first()
+    if not sales_rep:
+        return None
+
+    enforce_company_active_status_limits(sales_rep.company)
+    sales_rep.refresh_from_db()
+    if sales_rep.status != "active":
+        return None
+
+    return sales_rep
 
 
 def _report_related_prefetches(report_date):
@@ -110,7 +122,7 @@ def _report_related_prefetches(report_date):
 
 def get_visit_colony_report_by_id_for_sales_rep(sales_rep: SalesRepresentative, visit_colony_id: int):
     report = (
-        VisitColony.objects.filter(id=visit_colony_id, colony__sales_reps=sales_rep)
+        VisitColony.objects.filter(id=visit_colony_id, colony__sales_reps=sales_rep, colony__status="active")
         .select_related("colony")
         .prefetch_related("pending_customers", "completed_customers")
         .distinct()
@@ -119,6 +131,16 @@ def get_visit_colony_report_by_id_for_sales_rep(sales_rep: SalesRepresentative, 
 
     if not report:
         return None
+
+    if sales_rep.status != "active":
+        raise serializers.ValidationError(
+            {"sales_rep": "Inactive sales representative cannot perform this action."}
+        )
+
+    if report.colony.status != "active":
+        raise serializers.ValidationError(
+            {"colony": "Inactive colony cannot be updated."}
+        )
 
     return (
         VisitColony.objects.filter(id=report.id)
@@ -222,7 +244,7 @@ def update_visit_colony_report_for_sales_rep(
 @transaction.atomic
 def get_visit_colony_reports_for_sales_rep(sales_rep: SalesRepresentative, report_date):
     colonies = list(
-        Colony.objects.filter(sales_reps=sales_rep)
+        Colony.objects.filter(sales_reps=sales_rep, status="active")
         .select_related("colony_owner")
         .prefetch_related("customers")
         .order_by("name", "id")
@@ -242,7 +264,7 @@ def get_visit_colony_reports_for_sales_rep(sales_rep: SalesRepresentative, repor
             visit_report.pending_customers.set(colony.customers.all())
 
     return (
-        VisitColony.objects.filter(date=report_date, colony__sales_reps=sales_rep)
+        VisitColony.objects.filter(date=report_date, colony__sales_reps=sales_rep, colony__status="active")
         .select_related("colony")
         .prefetch_related(
             "pending_customers",

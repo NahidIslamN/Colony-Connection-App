@@ -2,6 +2,10 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from apps.managements.models import Colony, Company, Customer, SalesRepresentative
+from apps.managements.services.subscription_limit_service import (
+    SubscriptionRestrictionError,
+    enforce_customer_creation_allowed,
+)
 
 User = get_user_model()
 
@@ -48,7 +52,7 @@ def _validate_sales_rep_ids(company: Company, sales_rep_ids: list[int]):
 
 def _validate_colony_ids(company: Company, colony_ids: list[int]):
     unique_ids = set(colony_ids or [])
-    colonies = Colony.objects.filter(colony_owner=company, id__in=unique_ids)
+    colonies = Colony.objects.filter(colony_owner=company, id__in=unique_ids, status="active")
     if colonies.count() != len(unique_ids):
         return None
     return colonies
@@ -58,16 +62,18 @@ def create_customer_with_user(company: Company, validated_data: dict) -> dict:
     sales_rep_ids = validated_data.get("assigned_sales_rep_ids", [])
     colony_ids = validated_data.get("colony_ids", [])
 
-    valid_sales_reps = _validate_sales_rep_ids(company, sales_rep_ids)
-    if valid_sales_reps is None:
-        return {"success": False, "message": "One or more sales representatives are invalid for this company."}
-
-    valid_colonies = _validate_colony_ids(company, colony_ids)
-    if valid_colonies is None:
-        return {"success": False, "message": "One or more colonies are invalid for this company."}
-
     try:
         with transaction.atomic():
+            locked_company = enforce_customer_creation_allowed(company)
+
+            valid_sales_reps = _validate_sales_rep_ids(locked_company, sales_rep_ids)
+            if valid_sales_reps is None:
+                return {"success": False, "message": "One or more sales representatives are invalid for this company."}
+
+            valid_colonies = _validate_colony_ids(locked_company, colony_ids)
+            if valid_colonies is None:
+                return {"success": False, "message": "One or more colonies are invalid for this company."}
+
             password = 'securePass123'
             user = User.objects.create_user(
                 email=validated_data.get("email_address"),
@@ -84,7 +90,7 @@ def create_customer_with_user(company: Company, validated_data: dict) -> dict:
                 for input_field, model_field in CUSTOMER_FIELD_MAPPING.items()
                 if input_field in validated_data
             }
-            customer_payload["owner_company"] = company
+            customer_payload["owner_company"] = locked_company
             customer_payload["user"] = user
             customer_payload["status"] = "active"
 
@@ -109,6 +115,8 @@ def create_customer_with_user(company: Company, validated_data: dict) -> dict:
                 "machinery_info_accepted": "machinery_info" in validated_data,
                 "message": "Customer created successfully.",
             }
+    except SubscriptionRestrictionError as exc:
+        return {"success": False, "message": str(exc)}
     except Exception as exc:
         return {"success": False, "message": str(exc)}
 

@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from celery.schedules import crontab
 from decouple import config
 from django.core.exceptions import ImproperlyConfigured
 
@@ -205,6 +206,16 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
 CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+CELERY_BEAT_SCHEDULE = {
+    "deactivate-expired-company-subscriptions-midnight": {
+        "task": "apps.managements.tasks.subscription_tasks.mark_expired_company_subscriptions",
+        "schedule": crontab(hour=0, minute=0),
+    },
+    "enforce-company-plan-limits-nightly": {
+        "task": "apps.managements.tasks.subscription_tasks.enforce_company_plan_limits",
+        "schedule": crontab(hour=0, minute=10),
+    }
+}
 
 CHANNEL_REDIS_URL = config("CHANNEL_REDIS_URL", default="redis://127.0.0.1:6379/0")
 CHANNEL_LAYERS = {
