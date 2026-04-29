@@ -21,6 +21,8 @@ class Company(models.Model):
     )
     is_subscribe = models.BooleanField(default=False)
     expire_date = models.DateField()
+    stripe_subscription_id = models.CharField(max_length=255, null=True, blank=True)
+    
 
     def __str__(self):
         return self.company_name

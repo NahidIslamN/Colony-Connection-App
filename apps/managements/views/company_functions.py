@@ -49,11 +49,66 @@ from apps.managements.services import (
     get_colonies_for_sales_rep,
 )
 from apps.managements.services.subscription_limit_service import SubscriptionRestrictionError
+from apps.managements.services.subscription_stripe_services import (
+    create_subscription_checkout_session,
+    StripeCheckoutError as StripeServiceError,
+)
 from core.custom_permission import IsCompany
 from core.pagination import CustomPagination
 from core.responses import error_response, success_response
 
 logger = logging.getLogger(__name__)
+
+
+
+class PaymentCheckoutSessionCreator(APIView):
+    permission_classes = [IsCompany]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    def post(self, request, plan_id):
+        """Create a Stripe Checkout session for subscribing the company to a plan.
+
+        Expects JSON: { "plan_duration": "monthly" | "yearly" }
+        """
+        try:
+            company = Company.objects.get(user=request.user)
+        except Company.DoesNotExist:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+
+        plan_duration = (request.data.get("plan_duration") or "").strip().lower()
+
+        if plan_duration not in ("monthly", "yearly"):
+            return error_response(
+                "Invalid or missing 'plan_duration'. Allowed values: 'monthly', 'yearly'.",
+                status.HTTP_400_BAD_REQUEST,
+            )
+
+        # build success / cancel urls using configured BASE_URL
+        from django.conf import settings
+
+        base = getattr(settings, "BASE_URL", "").rstrip("/")
+        success_url = f"{base}/api/v1/managements/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{base}/api/v1/managements/billing/cancel"
+
+        try:
+            result = create_subscription_checkout_session(
+                company=company,
+                plan_id=plan_id,
+                plan_duration=plan_duration,
+                success_url=success_url,
+                cancel_url=cancel_url,
+                request_id=getattr(request, "request_id", None),
+            )
+
+            return success_response(
+                "Checkout session created.",
+                status.HTTP_200_OK,
+                data={"checkout_url": result.get("url"), "session_id": result.get("session_id")},
+            )
+        except StripeServiceError as exc:
+            return error_response(str(exc), status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error(f"Failed to create checkout session: {exc}", exc_info=True)
+            return error_response("Failed to create checkout session.", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ColonyListCreateAPIView(APIView):
@@ -499,7 +554,7 @@ class ColoniesForAssignmentAPIView(APIView):
         
         try:
             company = Company.objects.get(user=request.user)
-            colonies = Colony.objects.filter(colony_owner=company).values('id', 'name', 'region', 'status')
+            colonies = Colony.objects.filter(colony_owner=company, status="active").values('id', 'name', 'region', 'status')
             
             return success_response(
                 "Colonies retrieved successfully",
@@ -525,7 +580,7 @@ class SalesRepsForAssignmentAPIView(APIView):
 
         try:
             company = Company.objects.get(user=request.user)
-            sales_reps = get_sales_reps_for_company(company).values("id", "full_name", "status", "email", "phone")
+            sales_reps = get_sales_reps_for_company(company).filter(status="active").values("id", "full_name", "status", "email", "phone")
             return success_response(
                 "Sales representatives retrieved successfully",
                 status.HTTP_200_OK,
@@ -671,26 +726,34 @@ class SubscriptionPlans(APIView):
     def get(self, request):
         try:
             company = Company.objects.select_related("subscription_package").get(user=request.user)
+            
         except Company.DoesNotExist:
             return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
 
         current_plan = company.subscription_package
-        subscription_plans = SubscribePlan.objects.all().order_by("id")
+        subscription_plans = SubscribePlan.objects.all().order_by("-id")
 
         serializer = SubscriptionPlanOutputSerializer(
             subscription_plans,
             many=True,
-            context={"current_plan": current_plan},
+            context={"current_plan": current_plan, "company": company},
         )
 
         return success_response(
             message="Subscription plans retrieved successfully.",
             status_code=status.HTTP_200_OK,
             data={
-                "current_plan": SubscriptionPlanOutputSerializer(
-                    current_plan,
-                    context={"current_plan": current_plan},
-                ).data if current_plan else None,
+                "current_plan": (
+                    {
+                        **SubscriptionPlanOutputSerializer(
+                            current_plan,
+                            context={"current_plan": current_plan, "company": company},
+                        ).data,
+                        "expire_date": company.expire_date,
+                    }
+                    if current_plan
+                    else None
+                ),
                 "plans": serializer.data,
             },
         )

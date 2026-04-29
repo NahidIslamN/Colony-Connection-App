@@ -46,6 +46,7 @@ class CompanyOutputSerializer(serializers.ModelSerializer):
 
 class SubscriptionPlanOutputSerializer(serializers.ModelSerializer):
     is_current_plan = serializers.SerializerMethodField()
+    features = serializers.SerializerMethodField()
 
     class Meta:
         model = SubscribePlan
@@ -59,11 +60,15 @@ class SubscriptionPlanOutputSerializer(serializers.ModelSerializer):
             "is_unlimit_users",
             "is_unlimit_colony",
             "is_current_plan",
+            "features",
         )
 
     def get_is_current_plan(self, obj):
         current_plan = self.context.get("current_plan")
         return bool(current_plan and current_plan.id == obj.id)
+
+    def get_features(self, obj):
+        return list(obj.features.values_list("text", flat=True))
 
 
 class SalesRepresentativeOutputSerializer(serializers.ModelSerializer):

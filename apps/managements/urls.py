@@ -17,7 +17,10 @@ from .views.company_functions import (
     SalesRepresentativeListCreateAPIView,
     AssignSalesRepToColoniesAPIView,
     GetSalesRepColoniesAPIView,
+    PaymentCheckoutSessionCreator,
 )
+from .views.billing import BillingCancelView, BillingSuccessView
+from .views.billing import BillingWebhookView
 from .views.api import SupportMessageCreateAPIView
 
 urlpatterns = [
@@ -40,6 +43,13 @@ urlpatterns = [
     path("company/sales-representatives/<int:sales_rep_id>/colonies/", GetSalesRepColoniesAPIView.as_view(), name="sales-rep-colonies"),
 
     path("company/subscription-plans/", SubscriptionPlans.as_view(), name="subscription-plans"),
+    path("company/subscribe-with/<int:plan_id>/", PaymentCheckoutSessionCreator.as_view(), name="subscription-plans"),
+
+    path("billing/success", BillingSuccessView.as_view(), name="billing-success-no-slash"),
+    path("billing/success/", BillingSuccessView.as_view(), name="billing-success"),
+    path("billing/cancel", BillingCancelView.as_view(), name="billing-cancel-no-slash"),
+    path("billing/cancel/", BillingCancelView.as_view(), name="billing-cancel"),
+    path("billing/webhook/", BillingWebhookView.as_view(), name="billing-webhook"),
 
     path("support/messages/", SupportMessageCreateAPIView.as_view(), name="support-message-create"),
 ]

@@ -263,6 +263,10 @@ SECURE_HSTS_SECONDS = 0 if DEBUG else 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
 
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET')
+
 MIGRATION_MODULES = {
     "auths": "db.migrations.auths",
     "notifications": "db.migrations.notifications",

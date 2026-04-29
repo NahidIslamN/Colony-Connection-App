@@ -6,10 +6,15 @@ from .models import (
     Customer,
     CustomerMechanary,
     CustomerNote,
+    Invoice,
+    WebhookEvent,
     SalesRepresentative,
     SubscribePlan,
     VisitColony,
+    SubscriptionFeatures
 )
+
+admin.site.register(SubscriptionFeatures)
 
 
 @admin.register(SubscribePlan)
@@ -105,3 +110,87 @@ class CustomerMechanaryAdmin(admin.ModelAdmin):
     search_fields = ("customer__company_name", "type", "brand", "model", "serial_number")
     list_filter = ("type", "brand", "purchase_year")
     autocomplete_fields = ("customer",)
+
+
+
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "company",
+        "plan",
+        "payment_ammount",
+        "currency",
+        "paid",
+        "date",
+        "stripe_invoice_id",
+        "stripe_subscription_id",
+    )
+
+    list_filter = (
+        "paid",
+        "currency",
+        "date",
+        "plan",
+    )
+
+    search_fields = (
+        "company__company_name",
+        "stripe_invoice_id",
+        "stripe_subscription_id",
+    )
+
+    autocomplete_fields = ("company", "plan")
+
+    readonly_fields = ("date",)
+
+    ordering = ("-date",)
+
+    date_hierarchy = "date"
+
+    list_per_page = 25
+
+    fieldsets = (
+        ("Basic Info", {
+            "fields": ("company", "plan", "payment_ammount", "currency", "paid")
+        }),
+        ("Stripe Info", {
+            "fields": ("stripe_invoice_id", "stripe_subscription_id")
+        }),
+        ("Extra", {
+            "fields": ("metadata", "date")
+        }),
+    )
+
+
+@admin.register(WebhookEvent)
+class WebhookEventAdmin(admin.ModelAdmin):
+    list_display = (
+        "event_id",
+        "processed_at",
+    )
+
+    search_fields = (
+        "event_id",
+    )
+
+    readonly_fields = (
+        "event_id",
+        "payload",
+        "processed_at",
+    )
+
+    ordering = ("-processed_at",)
+
+    date_hierarchy = "processed_at"
+
+    list_per_page = 25
+
+    fieldsets = (
+        ("Event Info", {
+            "fields": ("event_id", "processed_at")
+        }),
+        ("Payload", {
+            "fields": ("payload",)
+        }),
+    )
