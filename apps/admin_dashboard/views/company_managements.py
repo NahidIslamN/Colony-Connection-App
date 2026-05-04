@@ -120,7 +120,20 @@ class CompanyManagementAdminView(APIView):
                 errors={"detail": "Company id is required."},
             )
 
-        serializer = CompanyManagementUpdateInputSerializer(data=request.data, partial=True)
+        # Fetch the company instance for validation context
+        company_instance = get_company_by_id(pk)
+        if not company_instance:
+            return error_response(
+                "Company update failed.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                errors={"detail": "Company not found."},
+            )
+
+        serializer = CompanyManagementUpdateInputSerializer(
+            instance=company_instance,
+            data=request.data,
+            partial=True
+        )
         if not serializer.is_valid():
             return error_response(
                 "Company update failed.",

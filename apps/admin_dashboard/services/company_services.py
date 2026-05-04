@@ -148,41 +148,82 @@ def update_company(company_id: int, validate_data: dict) -> Company:
             raise CompanyServiceError("company_not_found", details="Company not found.")
 
         user = company.user
+        company_changed = False
+        user_changed = False
 
+        # Update Company fields
         if "company_name" in validate_data:
             company.company_name = validate_data["company_name"]
+            company_changed = True
         if "ceo_name" in validate_data:
             company.ceo_name = validate_data["ceo_name"]
-        if "email" in validate_data:
+            company_changed = True
+        if "email" in validate_data and validate_data["email"] != company.email:
+            # Check uniqueness excluding self
+            if Company.objects.filter(email=validate_data["email"]).exclude(id=company.id).exists():
+                raise CompanyServiceError("integrity_error", details="A company with this email already exists.")
             company.email = validate_data["email"]
-        if "phone" in validate_data:
+            company_changed = True
+        if "phone" in validate_data and validate_data["phone"] != company.phone:
+            # Check uniqueness excluding self
+            if Company.objects.filter(phone=validate_data["phone"]).exclude(id=company.id).exists():
+                raise CompanyServiceError("integrity_error", details="A company with this phone already exists.")
             company.phone = validate_data["phone"]
+            company_changed = True
         if "subscription_package" in validate_data:
             company.subscription_package = validate_data["subscription_package"]
+            company_changed = True
         if "is_subscribe" in validate_data:
             company.is_subscribe = validate_data["is_subscribe"]
+            company_changed = True
         if "expire_date" in validate_data:
             company.expire_date = validate_data["expire_date"]
+            company_changed = True
 
+        # Update User fields
         if user:
             if "user_full_name" in validate_data or "ceo_name" in validate_data:
-                user.full_name = validate_data.get("user_full_name") or validate_data.get("ceo_name") or user.full_name
+                new_full_name = validate_data.get("user_full_name") or validate_data.get("ceo_name") or user.full_name
+                if new_full_name != user.full_name:
+                    user.full_name = new_full_name
+                    user_changed = True
             if "user_email" in validate_data or "email" in validate_data:
-                user.email = validate_data.get("user_email") or validate_data.get("email") or user.email
+                new_email = validate_data.get("user_email") or validate_data.get("email") or user.email
+                if new_email != user.email:
+                    # Check uniqueness excluding self
+                    if User.objects.filter(email=new_email).exclude(id=user.id).exists():
+                        raise CompanyServiceError("integrity_error", details="A user with this email already exists.")
+                    user.email = new_email
+                    user_changed = True
             if "user_phone" in validate_data or "phone" in validate_data:
-                user.phone = validate_data.get("user_phone") or validate_data.get("phone") or user.phone
-            if "user_status" in validate_data:
+                new_phone = validate_data.get("user_phone") or validate_data.get("phone") or user.phone
+                if new_phone != user.phone:
+                    # Check uniqueness excluding self
+                    if User.objects.filter(phone=new_phone).exclude(id=user.id).exists():
+                        raise CompanyServiceError("integrity_error", details="A user with this phone already exists.")
+                    user.phone = new_phone
+                    user_changed = True
+            if "user_status" in validate_data and validate_data["user_status"] != user.status:
                 user.status = validate_data["user_status"]
-            if "user_is_active" in validate_data:
+                user_changed = True
+            if "user_is_active" in validate_data and validate_data["user_is_active"] != user.is_active:
                 user.is_active = validate_data["user_is_active"]
+                user_changed = True
             if validate_data.get("password"):
                 user.set_password(validate_data["password"])
+                user_changed = True
 
-            user.is_email_verified = True if user.email else user.is_email_verified
-            user.is_phone_verified = True if user.phone else user.is_phone_verified
-            user.save()
+            if user.email:
+                user.is_email_verified = True
+            if user.phone:
+                user.is_phone_verified = True
 
-        company.save()
+            if user_changed:
+                user.save()
+
+        if company_changed:
+            company.save()
+
         return company
     except CompanyServiceError:
         raise
