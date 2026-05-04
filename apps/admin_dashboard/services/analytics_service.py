@@ -1,6 +1,6 @@
 """System-wide analytics for admin dashboard."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 from django.db import transaction
 from django.db.models import Count, Sum
 from django.utils import timezone
@@ -17,8 +17,8 @@ def get_admin_analytics():
     - total_revenue: MRR sum with growth %
     - active_subscriptions: count with growth %
     - expired_plans: count with growth %
-    - company_growth_trend: monthly trend (8 months)
-    - revenue_trend: monthly revenue trend (8 months)
+    - company_growth_trend: monthly trend (Jan-Dec for current year)
+    - revenue_trend: monthly revenue trend (Jan-Dec for current year)
     
     Uses transaction.atomic() for read consistency and efficient annotations.
     """
@@ -80,11 +80,11 @@ def get_admin_analytics():
     revenue_prev = revenue_data_prev['total_mrr'] or 0
     revenue_growth = _calculate_growth_percent(revenue_prev, total_revenue)
 
-    # Company growth trend (monthly, last 8 months)
-    company_growth_trend = _get_monthly_company_trend(months=8)
+    # Company growth trend (monthly, Jan-Dec for current year)
+    company_growth_trend = _get_monthly_company_trend(year=today.year)
 
-    # Revenue trend (monthly, last 8 months)
-    revenue_trend = _get_monthly_revenue_trend(months=8)
+    # Revenue trend (monthly, Jan-Dec for current year)
+    revenue_trend = _get_monthly_revenue_trend(year=today.year)
 
     payload = {
         'total_companies': {
@@ -121,16 +121,16 @@ def _calculate_growth_percent(previous: float, current: float) -> float:
     return round(((current - previous) / previous) * 100, 1)
 
 
-def _get_monthly_company_trend(months: int = 8) -> list:
-    """Get monthly company creation trend for last N months."""
-    from dateutil.relativedelta import relativedelta
-
-    today = timezone.localdate()
+def _get_monthly_company_trend(year: int) -> list:
+    """Get monthly company creation trend for Jan-Dec of a given year."""
     trend = []
 
-    for i in range(months - 1, -1, -1):
-        month_start = (today - relativedelta(months=i)).replace(day=1)
-        month_end = (month_start + relativedelta(months=1)) - timedelta(days=1)
+    for month in range(1, 13):
+        month_start = date(year, month, 1)
+        if month == 12:
+            month_end = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(year, month + 1, 1) - timedelta(days=1)
 
         count = Company.objects.filter(
             user__date_joined__date__gte=month_start,
@@ -145,16 +145,16 @@ def _get_monthly_company_trend(months: int = 8) -> list:
     return trend
 
 
-def _get_monthly_revenue_trend(months: int = 8) -> list:
-    """Get monthly revenue trend for last N months."""
-    from dateutil.relativedelta import relativedelta
-
-    today = timezone.localdate()
+def _get_monthly_revenue_trend(year: int) -> list:
+    """Get monthly revenue trend for Jan-Dec of a given year."""
     trend = []
 
-    for i in range(months - 1, -1, -1):
-        month_start = (today - relativedelta(months=i)).replace(day=1)
-        month_end = (month_start + relativedelta(months=1)) - timedelta(days=1)
+    for month in range(1, 13):
+        month_start = date(year, month, 1)
+        if month == 12:
+            month_end = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(year, month + 1, 1) - timedelta(days=1)
 
         revenue = Company.objects.filter(
             is_subscribe=True,
