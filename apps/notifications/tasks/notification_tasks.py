@@ -3,6 +3,7 @@ from asgiref.sync import async_to_sync
 from celery import shared_task
 from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from apps.notifications.models import NoteModel
 from apps.notifications.services.push_notification_service import (
     send_push_notification_to_user,
@@ -37,12 +38,13 @@ def sent_note_to_user(user_id: int, title: str, content: str, note_type: str, da
 
     # 1. Store in database for persistent history
     try:
-        NoteModel.objects.create(
-            user=user,
-            title=title,
-            content=content,
-            note_type=note_type,
-        )
+        with transaction.atomic():
+            NoteModel.objects.create(
+                user=user,
+                title=title,
+                content=content,
+                note_type=note_type,
+            )
         logger.info(f"Notification stored in DB for user {user_id}")
     except Exception as exc:
         logger.error(f"Error storing notification in DB: {exc}", exc_info=True)

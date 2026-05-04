@@ -53,7 +53,7 @@ from apps.managements.services.subscription_stripe_services import (
     create_subscription_checkout_session,
     StripeCheckoutError as StripeServiceError,
 )
-from core.custom_permission import IsCompany
+from core.custom_permission import IsCompany, IsAdmin
 from core.pagination import CustomPagination
 from core.responses import error_response, success_response
 
@@ -721,7 +721,7 @@ class CustomerDetailAPIView(APIView):
 
 
 class SubscriptionPlans(APIView):
-    permission_classes = [IsCompany]
+    permission_classes = [IsCompany | IsAdmin]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
     def get(self, request):
         try:
