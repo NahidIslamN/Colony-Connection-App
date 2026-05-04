@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -13,6 +14,10 @@ from apps.managements.models import Company, SupportModel
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+COMPANY_ASSIGNMENT_CACHE_KEY = "admin_dashboard:company_assignment_list:v1"
+COMPANY_ASSIGNMENT_CACHE_TIMEOUT = 300
 
 
 @dataclass
@@ -26,6 +31,37 @@ class CompanyServiceError(Exception):
 
 def _resolve_company_queryset() -> QuerySet[Company]:
     return Company.objects.select_related("user", "subscription_package").all().order_by("-id")
+
+
+def _invalidate_company_assignment_cache() -> None:
+    cache.delete(COMPANY_ASSIGNMENT_CACHE_KEY)
+
+
+def get_companies_for_assignment(force_refresh: bool = False) -> list[dict]:
+    """Return a compact company list for assignment dropdowns (cached)."""
+    if not force_refresh:
+        cached = cache.get(COMPANY_ASSIGNMENT_CACHE_KEY)
+        if cached is not None:
+            return cached
+
+    companies = _resolve_company_queryset().select_related("user")
+    payload = [
+        {
+            "id": company.id,
+            "company_name": company.company_name,
+            "email": company.email,
+            "phone": company.phone,
+            "user": {
+                "id": company.user_id,
+                "email": company.user.email if company.user else None,
+                "full_name": company.user.full_name if company.user else None,
+            },
+        }
+        for company in companies
+    ]
+
+    cache.set(COMPANY_ASSIGNMENT_CACHE_KEY, payload, COMPANY_ASSIGNMENT_CACHE_TIMEOUT)
+    return payload
 
 
 def list_companies(query_params=None) -> QuerySet[Company]:
@@ -131,6 +167,8 @@ def create_company(validate_data: dict) -> Company:
             expire_date=payload.get("expire_date") or _default_expire_date(payload.get("subscription_package")),
         )
 
+        _invalidate_company_assignment_cache()
+
         return company
     except IntegrityError as exc:
         logger.exception("Integrity error while creating company")
@@ -224,6 +262,8 @@ def update_company(company_id: int, validate_data: dict) -> Company:
         if company_changed:
             company.save()
 
+        _invalidate_company_assignment_cache()
+
         return company
     except CompanyServiceError:
         raise
@@ -245,6 +285,8 @@ def delete_company(company_id: int) -> None:
     company.delete()
     if user:
         user.delete()
+
+    _invalidate_company_assignment_cache()
 
 
 

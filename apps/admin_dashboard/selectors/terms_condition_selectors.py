@@ -9,3 +9,9 @@ def get_terms_conditions_queryset() -> QuerySet[TermsCondition]:
 
 def get_terms_condition_by_id(term_id: int) -> TermsCondition | None:
     return TermsCondition.objects.filter(id=term_id).first()
+
+
+
+
+def get_terms_condition() -> TermsCondition | None:
+    return TermsCondition.objects.filter().first()

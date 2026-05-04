@@ -572,7 +572,7 @@ class ColoniesForAssignmentAPIView(APIView):
 class SalesRepsForAssignmentAPIView(APIView):
     """Get list of sales reps available for assignment to customers."""
 
-    permission_classes = [IsCompany]
+    permission_classes = [IsCompany |IsAdmin]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
 
     def get(self, request):
@@ -580,7 +580,7 @@ class SalesRepsForAssignmentAPIView(APIView):
 
         try:
             company = Company.objects.get(user=request.user)
-            sales_reps = get_sales_reps_for_company(company).filter(status="active").values("id", "full_name", "status", "email", "phone")
+            sales_reps = get_sales_reps_for_company(company).filter(status="active").values("id", 'user', "full_name", "status", "email", "phone")
             return success_response(
                 "Sales representatives retrieved successfully",
                 status.HTTP_200_OK,

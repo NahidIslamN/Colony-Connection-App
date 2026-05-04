@@ -32,6 +32,7 @@ urlpatterns = [
 
     path("company/colonies-for-assignment/", ColoniesForAssignmentAPIView.as_view(), name="colonies-for-assignment"),
     path("company/sales-reps-for-assignment/", SalesRepsForAssignmentAPIView.as_view(), name="sales-reps-for-assignment"),
+    
 
     path("company/customers/", CustomerListCreateAPIView.as_view(), name="customer-list-create"),
     path("company/customers/<int:pk>/", CustomerDetailAPIView.as_view(), name="customer-detail"),

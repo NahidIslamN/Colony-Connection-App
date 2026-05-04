@@ -16,6 +16,7 @@ from apps.admin_dashboard.services import (
     create_company,
     delete_company,
     get_company_by_id,
+    get_companies_for_assignment,
     list_companies,
     update_company,
     list_support_messages,
@@ -25,6 +26,29 @@ from core.pagination import CustomPagination
 from core.responses import error_response, success_response
 
 logger = logging.getLogger(__name__)
+
+
+
+
+class CompanyForAssignmentAPIView(APIView):
+    permission_classes = [IsAdmin]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+
+    def get(self, request):
+        try:
+            companies = get_companies_for_assignment()
+            return success_response(
+                "Company list retrieved successfully.",
+                status_code=status.HTTP_200_OK,
+                data=companies,
+            )
+        except Exception as exc:
+            logger.exception("Error retrieving company assignment list")
+            return error_response(
+                "Failed to retrieve company list.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                errors={"detail": str(exc)},
+            )
 
 
 
