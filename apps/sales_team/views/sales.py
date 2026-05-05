@@ -1,6 +1,7 @@
 import logging
 
 from django.db import transaction
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
@@ -74,8 +75,24 @@ class VisitColonyReport_SpecificDay(APIView):
 
         try:
             report_date = serializer.validated_data["date"]
+            search = serializer.validated_data.get("search", "").strip()
             with transaction.atomic():
                 report_queryset = get_visit_colony_reports_for_sales_rep(sales_rep, report_date)
+
+            if search:
+                report_queryset = report_queryset.filter(
+                    Q(colony__name__icontains=search)
+                    | Q(colony__region__icontains=search)
+                    | Q(colony__status__icontains=search)
+                    | Q(pending_customers__owner_name__icontains=search)
+                    | Q(pending_customers__company_name__icontains=search)
+                    | Q(pending_customers__email__icontains=search)
+                    | Q(pending_customers__phone__icontains=search)
+                    | Q(completed_customers__owner_name__icontains=search)
+                    | Q(completed_customers__company_name__icontains=search)
+                    | Q(completed_customers__email__icontains=search)
+                    | Q(completed_customers__phone__icontains=search)
+                ).distinct()
 
             paginator = CustomPagination()
             page = paginator.paginate_queryset(report_queryset, request)
