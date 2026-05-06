@@ -108,6 +108,7 @@ def create_sales_rep_with_user(company: Company, validated_data: dict) -> dict:
                 email=validated_data.get('email'),
                 full_name=validated_data.get('full_name'),
                 phone=validated_data.get('phone'),
+                role = 'sale_rep',
                 is_email_verified=True,
                 is_phone_verified=True
             )

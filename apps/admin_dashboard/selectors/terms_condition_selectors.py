@@ -15,3 +15,7 @@ def get_terms_condition_by_id(term_id: int) -> TermsCondition | None:
 
 def get_terms_condition() -> TermsCondition | None:
     return TermsCondition.objects.filter().first()
+
+
+def about_us_condition() -> TermsCondition | None:
+    return TermsCondition.objects.last()
