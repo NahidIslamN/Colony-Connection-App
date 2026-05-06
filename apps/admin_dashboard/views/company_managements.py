@@ -37,6 +37,7 @@ class CompanyForAssignmentAPIView(APIView):
     def get(self, request):
         try:
             companies = get_companies_for_assignment()
+            
             return success_response(
                 "Company list retrieved successfully.",
                 status_code=status.HTTP_200_OK,

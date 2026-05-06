@@ -235,9 +235,11 @@ BASE_URL = config("BASE_URL", default="").strip().rstrip("/")
 
 _dev_frontend_origins = [
     "http://localhost:3000",
+    "http://127.0.0.1:3001",
+    "http://localhost:3001",
     "http://127.0.0.1:3000",
-    "https://localhost:3000",
-    "https://127.0.0.1:3000",
+    "http://10.10.12.44:3000",
+    "http://10.10.12.44:3001"
 ]
 
 _cors_allowed_origins = config("CORS_ALLOWED_ORIGINS", default=",".join(_dev_frontend_origins)).strip()

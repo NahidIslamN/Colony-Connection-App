@@ -580,6 +580,7 @@ class SalesRepsForAssignmentAPIView(APIView):
 
         try:
             company = Company.objects.get(user=request.user)
+            
             sales_reps = get_sales_reps_for_company(company).filter(status="active").values("id", 'user', "full_name", "status", "email", "phone")
             return success_response(
                 "Sales representatives retrieved successfully",
@@ -724,13 +725,20 @@ class SubscriptionPlans(APIView):
     permission_classes = [IsCompany | IsAdmin]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
     def get(self, request):
-        try:
-            company = Company.objects.select_related("subscription_package").get(user=request.user)
-            
-        except Company.DoesNotExist:
-            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+        if not request.user.is_superuser:
+            # do something
+            try:
+                company = Company.objects.select_related("subscription_package").get(user=request.user)
+                
+            except Company.DoesNotExist:
+                return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
 
-        current_plan = company.subscription_package
+            current_plan = company.subscription_package
+        else:
+            current_plan = None
+            company = None
+            # pass
+
         subscription_plans = SubscribePlan.objects.all().order_by("-id")
 
         serializer = SubscriptionPlanOutputSerializer(
