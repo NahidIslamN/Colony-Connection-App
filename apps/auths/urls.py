@@ -9,6 +9,7 @@ from apps.auths.views.auth import (
     SignupView,
     VerifyEmailSignupView,
     VerifyForgetPasswordUserView,
+    DeleteMyAccountView
 )
 
 urlpatterns = [
@@ -20,4 +21,5 @@ urlpatterns = [
     path("otp-verify", VerifyForgetPasswordUserView.as_view(), name="verify_user_forget_password"),
     path("reset-password", ResetPasswordView.as_view(), name="reset_password"),
     path("refresh", RefreshTokenView.as_view(), name="refresh_token"),
+    path('delete-account/', DeleteMyAccountView.as_view(), name="delete-user")
 ]

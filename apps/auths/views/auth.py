@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
+from django.db import transaction
 
 from apps.auths.serializers.input import (
     ChangePasswordInputSerializer,
@@ -266,3 +267,37 @@ class RefreshTokenView(APIView):
             _set_refresh_cookie(response, token_payload["refresh"])
 
         return response
+
+
+
+
+
+
+
+class DeleteMyAccountView(APIView):
+    """
+    API endpoint to deactivate the authenticated user's account.
+    Instead of permanently deleting, we perform a soft delete by setting is_active=False.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [UserRateThrottle, AnonRateThrottle]
+
+    @transaction.atomic
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+
+        if not user.is_active:
+            return success_response(
+                message="Account is already deactivated.",
+                status_code=status.HTTP_200_OK,
+            )
+
+        user.is_active = False
+        user.is_email_verified = False
+        user.save(update_fields=["is_active"])
+
+        return success_response(
+            message="Account deleted successfully.",
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
