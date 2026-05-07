@@ -269,11 +269,6 @@ class RefreshTokenView(APIView):
         return response
 
 
-
-
-
-
-
 class DeleteMyAccountView(APIView):
     """
     API endpoint to deactivate the authenticated user's account.
