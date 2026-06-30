@@ -99,7 +99,12 @@ class CompanyManagementAdminView(APIView):
         serializer = CompanyManagementOutputSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-    def post(self, request):
+    def post(self, request, pk=None):
+        if pk is not None:
+            return self.put(request, pk=pk)
+        if "id" in request.data:
+            return self.put(request, pk=request.data.get("id"))
+            
         serializer = CompanyManagementInputSerializer(data=request.data)
         if not serializer.is_valid():
             return error_response(

@@ -16,6 +16,15 @@ class ColonyCreateUpdateInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Colony
         fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status")
+        extra_kwargs = {
+            'sales_reps': {'required': False, 'allow_empty': True},
+            'customers': {'required': False, 'allow_empty': True},
+            'status': {'required': False},
+            'region': {'required': False},
+            'location_url': {'required': False},
+            'latitude': {'required': False},
+            'longitude': {'required': False},
+        }
 
 
 class ColonyPatchInputSerializer(serializers.ModelSerializer):
@@ -60,6 +69,8 @@ class SalesRepresentativeCreateUpdateInputSerializer(serializers.Serializer):
         child=serializers.IntegerField(),
         required=False,
         allow_empty=True,
+        allow_null=True,
+        default=list,
         help_text="List of colony IDs to assign to this sales representative"
     )
     
