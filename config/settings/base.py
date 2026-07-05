@@ -214,6 +214,10 @@ CELERY_BEAT_SCHEDULE = {
     "enforce-company-plan-limits-nightly": {
         "task": "apps.managements.tasks.subscription_tasks.enforce_company_plan_limits",
         "schedule": crontab(hour=0, minute=10),
+    },
+    "send-daily-mechanary-reports-end-of-day": {
+        "task": "apps.managements.tasks.daily_reports.send_daily_mechanary_reports",
+        "schedule": crontab(hour=23, minute=50),
     }
 }
 
