@@ -79,6 +79,8 @@ def _detect_extension_from_content(data: bytes) -> str | None:
         return "mp4"
 
     try:
+        if not data:
+            return None
         data.decode("utf-8")
         return "txt"
     except UnicodeDecodeError:
@@ -100,7 +102,11 @@ def _validate_content_match(expected_extension: str, data: bytes) -> None:
     normalized_detected = alias_map.get(detected, detected)
 
     if normalized_detected != normalized_expected:
-        raise ValidationDomainError(code="invalid_file_signature", message="File content does not match extension")
+        image_types = {"jpg", "png", "gif", "webp"}
+        if normalized_expected in image_types and normalized_detected in image_types:
+            pass  # Allow image extensions to be mismatched (common with mobile uploads)
+        else:
+            raise ValidationDomainError(code="invalid_file_signature", message="File content does not match extension")
 
 
 def validate_uploaded_file(file_obj) -> None:
