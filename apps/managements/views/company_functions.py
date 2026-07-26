@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
-from apps.managements.models import Company, Colony,SubscribePlan
+from apps.managements.models import Company, Colony, SubscribePlan, SalesRepresentative
 from apps.managements.serializers.input import (
     CustomerCreateUpdateInputSerializer,
     CustomerPatchInputSerializer,
@@ -53,7 +53,7 @@ from apps.managements.services.subscription_stripe_services import (
     create_subscription_checkout_session,
     StripeCheckoutError as StripeServiceError,
 )
-from core.custom_permission import IsCompany, IsAdmin
+from core.custom_permission import IsCompany, IsAdmin, IsSalesRep
 from core.pagination import CustomPagination
 from core.responses import error_response, success_response
 
@@ -112,16 +112,23 @@ class PaymentCheckoutSessionCreator(APIView):
 
 
 class ColonyListCreateAPIView(APIView):
-    permission_classes = [IsCompany]
+    permission_classes = [IsCompany | IsSalesRep]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
     pagination_class = CustomPagination
 
     def get(self, request):
-        try:
-            company = Company.objects.get(user=request.user)
-            colonies = get_colonies_for_company(company)
-        except Company.DoesNotExist:
+        company = None
+        if getattr(request.user, 'role', None) == 'company':
+            company = Company.objects.filter(user=request.user).first()
+        elif getattr(request.user, 'role', None) == 'sale_rep':
+            sales_rep = SalesRepresentative.objects.filter(user=request.user).first()
+            if sales_rep:
+                company = sales_rep.company
+                
+        if not company:
             return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+
+        colonies = get_colonies_for_company(company)
 
         paginator = self.pagination_class()
         paginated_colonies = paginator.paginate_queryset(colonies, request)
@@ -137,20 +144,34 @@ class ColonyListCreateAPIView(APIView):
                 status.HTTP_400_BAD_REQUEST,
                 errors=serializer.errors,
             )
+            
+        company = None
+        sales_rep = None
+        if getattr(request.user, 'role', None) == 'company':
+            company = Company.objects.filter(user=request.user).first()
+        elif getattr(request.user, 'role', None) == 'sale_rep':
+            sales_rep = SalesRepresentative.objects.filter(user=request.user).first()
+            if sales_rep:
+                company = sales_rep.company
+                
+        if not company:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
 
         try:
-            company = Company.objects.get(user=request.user)
-            colony = create_colony(company, serializer.validated_data)
+            validated_data = serializer.validated_data
+            
+            if sales_rep:
+                sales_reps_list = validated_data.get('sales_reps', [])
+                if sales_rep not in sales_reps_list:
+                    sales_reps_list.append(sales_rep)
+                validated_data['sales_reps'] = sales_reps_list
+
+            colony = create_colony(company, validated_data)
             output_serializer = ColonyOutputSerializer(colony)
             return success_response(
                 "Colony created successfully.",
                 status.HTTP_201_CREATED,
                 data=output_serializer.data,
-            )
-        except Company.DoesNotExist:
-            return error_response(
-                "Company not found for this user.",
-                status.HTTP_404_NOT_FOUND,
             )
         except SubscriptionRestrictionError as exc:
             return error_response(
@@ -167,12 +188,22 @@ class ColonyListCreateAPIView(APIView):
 
 
 class ColonyDetailAPIView(APIView):
-    permission_classes = [IsCompany]
+    permission_classes = [IsCompany | IsSalesRep]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
 
     def get(self, request, pk):
+        company = None
+        if getattr(request.user, 'role', None) == 'company':
+            company = Company.objects.filter(user=request.user).first()
+        elif getattr(request.user, 'role', None) == 'sale_rep':
+            sales_rep = SalesRepresentative.objects.filter(user=request.user).first()
+            if sales_rep:
+                company = sales_rep.company
+                
+        if not company:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+            
         try:
-            company = Company.objects.get(user=request.user)
             colony = get_colony_by_id(pk, company)
             if not colony:
                 return error_response(
@@ -185,14 +216,23 @@ class ColonyDetailAPIView(APIView):
                 status.HTTP_200_OK,
                 data=serializer.data,
             )
-        except Company.DoesNotExist:
-            return error_response(
-                "Company not found for this user.",
-                status.HTTP_404_NOT_FOUND,
-            )
+        except Exception as exc:
+            logger.error(f"Error retrieving colony: {exc}", exc_info=True)
+            return error_response("Failed to retrieve colony.", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
     def patch(self, request, pk):
+        company = None
+        if getattr(request.user, 'role', None) == 'company':
+            company = Company.objects.filter(user=request.user).first()
+        elif getattr(request.user, 'role', None) == 'sale_rep':
+            sales_rep = SalesRepresentative.objects.filter(user=request.user).first()
+            if sales_rep:
+                company = sales_rep.company
+                
+        if not company:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+            
         serializer = ColonyPatchInputSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return error_response(
@@ -202,7 +242,6 @@ class ColonyDetailAPIView(APIView):
             )
 
         try:
-            company = Company.objects.get(user=request.user)
             colony = update_colony(pk, company, serializer.validated_data, partial=True)
             if not colony:
                 return error_response(
@@ -215,11 +254,6 @@ class ColonyDetailAPIView(APIView):
                 status.HTTP_200_OK,
                 data=output_serializer.data,
             )
-        except Company.DoesNotExist:
-            return error_response(
-                "Company not found for this user.",
-                status.HTTP_404_NOT_FOUND,
-            )
         except Exception as exc:
             logger.error(f"Error updating colony: {exc}", exc_info=True)
             return error_response(
@@ -228,8 +262,20 @@ class ColonyDetailAPIView(APIView):
             )
 
     def delete(self, request, pk):
+        if getattr(request.user, 'role', None) == 'sale_rep':
+            return error_response(
+                "Sales representatives are not allowed to delete colonies.",
+                status.HTTP_403_FORBIDDEN,
+            )
+            
+        company = None
+        if getattr(request.user, 'role', None) == 'company':
+            company = Company.objects.filter(user=request.user).first()
+            
+        if not company:
+            return error_response("Company not found for this user.", status.HTTP_404_NOT_FOUND)
+            
         try:
-            company = Company.objects.get(user=request.user)
             success = delete_colony(pk, company)
             if not success:
                 return error_response(
@@ -239,11 +285,6 @@ class ColonyDetailAPIView(APIView):
             return success_response(
                 "Colony deleted successfully.",
                 status.HTTP_204_NO_CONTENT,
-            )
-        except Company.DoesNotExist:
-            return error_response(
-                "Company not found for this user.",
-                status.HTTP_404_NOT_FOUND,
             )
         except Exception as exc:
             logger.error(f"Error deleting colony: {exc}", exc_info=True)
