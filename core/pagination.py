@@ -7,9 +7,9 @@ from core.logging_context import get_request_id
 
 
 class CustomPagination(PageNumberPagination):
-    page_size = 3
+    page_size = 2000
     page_size_query_param = "page_size"
-    max_page_size = 1000
+    max_page_size = 100000
 
     def _with_base_url(self, link):
         if not link:

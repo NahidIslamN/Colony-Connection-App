@@ -106,9 +106,9 @@ def get_sales_rep_for_user(user):
         return None
 
     enforce_company_active_status_limits(sales_rep.company)
-    sales_rep.refresh_from_db()
-    if sales_rep.status != "active":
-        return None
+    # sales_rep.refresh_from_db()
+    # if sales_rep.status != "active":
+    #     return None
 
     return sales_rep
 
