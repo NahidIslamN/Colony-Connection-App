@@ -6,12 +6,12 @@ User = settings.AUTH_USER_MODEL
 
 
 class Company(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     company_name = models.CharField(max_length=250)
     ceo_name = models.CharField(max_length=250)
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    
+        
     subscription_package = models.ForeignKey(
         "SubscribePlan",
         on_delete=models.SET_NULL,
@@ -80,6 +80,8 @@ class Customer(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
 
+    is_buiesness = models.BooleanField(default=False)
+
     sales_reps = models.ManyToManyField(
         "SalesRepresentative",
         related_name='customers'
@@ -114,10 +116,13 @@ class Colony(models.Model):
     )
     status = models.CharField(max_length=250, choices=STATUS_CHOICES, default='paused')
 
-    location_url = models.URLField(verbose_name='colony_location')
+    location_url = models.URLField(verbose_name='colony_location', null=True, blank=True)
 
     latitude = models.FloatField()
     longitude = models.FloatField()
+
+    is_public = models.BooleanField(default=False)
+    is_business = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

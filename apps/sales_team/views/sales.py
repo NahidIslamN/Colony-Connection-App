@@ -170,6 +170,34 @@ class CustomerListCreateAPIView(APIView):
 
 
 
+    def get(self, request, colony_id):
+        from apps.managements.models import Colony
+        from apps.managements.serializers.output import CustomerReadOutputSerializer
+
+        sales_rep = get_sales_rep_for_user(request.user)
+        if not sales_rep:
+            return error_response(
+                "Sales representative profile not found.", status.HTTP_404_NOT_FOUND
+            )
+
+        colony = Colony.objects.filter(Q(id=colony_id, status="active") & (Q(sales_reps=sales_rep) | Q(is_public=True))).first()
+        if not colony:
+            return error_response(
+                "Colony not found or not accessible.",
+                status.HTTP_404_NOT_FOUND,
+            )
+
+        customers = colony.customers.all().order_by('-id')
+        is_buiesness = request.query_params.get('is_buiesness')
+        if is_buiesness is not None:
+            is_buiesness_bool = is_buiesness.lower() in ['true', '1', 't', 'y', 'yes']
+            customers = customers.filter(is_buiesness=is_buiesness_bool)
+
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(customers, request)
+        serializer = CustomerReadOutputSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
     def post(self, request, colony_id):
 
         # minimal inline output used; no management serializer imported
@@ -198,7 +226,7 @@ class CustomerListCreateAPIView(APIView):
                 for k in [
                     'owner_name', 'company_name', 'industry', 'company_type',
                     'street_address', 'city', 'state', 'postal_code', 'country',
-                    'location_url', 'latitude', 'longitude'
+                    'location_url', 'latitude', 'longitude', 'is_buiesness'
                 ]
             }
 

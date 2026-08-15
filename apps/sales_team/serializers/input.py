@@ -55,6 +55,7 @@ class CustomerCreateSerializer(serializers.Serializer):
 	location_url = serializers.URLField(required=False, allow_blank=True)
 	latitude = serializers.FloatField(required=False, allow_null=True)
 	longitude = serializers.FloatField(required=False, allow_null=True)
+	is_buiesness = serializers.BooleanField(required=False, default=False)
 
 	def validate_email(self, value):
 		from django.contrib.auth import get_user_model

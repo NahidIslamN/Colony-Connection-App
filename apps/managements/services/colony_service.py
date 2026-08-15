@@ -13,7 +13,11 @@ from apps.managements.services.subscription_limit_service import (
 
 def get_colonies_for_company(company: Company):
     """Get all colonies for a specific company."""
-    return Colony.objects.filter(colony_owner=company)
+    from django.db.models import Q
+
+    return Colony.objects.filter(
+        Q(colony_owner=company) | Q(is_public=True)
+    )
 
 
 def get_colonies_count_for_company(company: Company):

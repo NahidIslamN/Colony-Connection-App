@@ -1,7 +1,7 @@
 """Sales team visit report business logic."""
 
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from rest_framework import serializers
 
 from apps.managements.models import (
@@ -31,7 +31,7 @@ def create_customer_for_colony(sales_rep: SalesRepresentative, colony_id: int, u
     colony = (
         Colony.objects.select_for_update()
         .prefetch_related('customers')
-        .filter(id=colony_id, sales_reps=sales_rep, status="active")
+        .filter(Q(id=colony_id, status="active") & (Q(sales_reps=sales_rep) | Q(is_public=True)))
         .first()
     )
 
@@ -84,10 +84,18 @@ def create_customer_for_colony(sales_rep: SalesRepresentative, colony_id: int, u
         location_url=customer_payload.get('location_url') or None,
         latitude=customer_payload.get('latitude'),
         longitude=customer_payload.get('longitude'),
+        is_buiesness=customer_payload.get('is_buiesness', False),
     )
 
     # attach to colony
     colony.customers.add(customer)
+
+    # Add to today's visit report if it already exists
+    from django.utils import timezone
+    today = timezone.now().date()
+    today_report = VisitColony.objects.filter(colony=colony, date=today).first()
+    if today_report:
+        today_report.pending_customers.add(customer)
 
     return customer
 
@@ -122,7 +130,7 @@ def _report_related_prefetches(report_date):
 
 def get_visit_colony_report_by_id_for_sales_rep(sales_rep: SalesRepresentative, visit_colony_id: int):
     report = (
-        VisitColony.objects.filter(id=visit_colony_id, colony__sales_reps=sales_rep, colony__status="active")
+        VisitColony.objects.filter(Q(id=visit_colony_id, colony__status="active") & (Q(colony__sales_reps=sales_rep) | Q(colony__is_public=True)))
         .select_related("colony")
         .prefetch_related("pending_customers", "completed_customers")
         .distinct()
@@ -164,7 +172,7 @@ def update_visit_colony_report_for_sales_rep(
         VisitColony.objects.select_for_update()
         .select_related("colony")
         .prefetch_related("pending_customers", "completed_customers")
-        .filter(id=visit_colony_id, colony__sales_reps=sales_rep)
+        .filter(Q(id=visit_colony_id) & (Q(colony__sales_reps=sales_rep) | Q(colony__is_public=True)))
         .first()
     )
     if not report:
@@ -244,7 +252,7 @@ def update_visit_colony_report_for_sales_rep(
 @transaction.atomic
 def get_visit_colony_reports_for_sales_rep(sales_rep: SalesRepresentative, report_date):
     colonies = list(
-        Colony.objects.filter(sales_reps=sales_rep, status="active")
+        Colony.objects.filter(Q(status="active") & (Q(sales_reps=sales_rep) | Q(is_public=True)))
         .select_related("colony_owner")
         .prefetch_related("customers")
         .order_by("name", "id")
@@ -264,7 +272,7 @@ def get_visit_colony_reports_for_sales_rep(sales_rep: SalesRepresentative, repor
             visit_report.pending_customers.set(colony.customers.all())
 
     return (
-        VisitColony.objects.filter(date=report_date, colony__sales_reps=sales_rep, colony__status="active")
+        VisitColony.objects.filter(Q(date=report_date, colony__status="active") & (Q(colony__sales_reps=sales_rep) | Q(colony__is_public=True)))
         .select_related("colony")
         .prefetch_related(
             "pending_customers",
