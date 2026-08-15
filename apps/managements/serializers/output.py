@@ -98,6 +98,7 @@ class SalesRepresentativeColonyOutputSerializer(serializers.ModelSerializer):
             "location_url",
             "latitude",
             "longitude",
+            "is_business",
         )
 
 
@@ -187,6 +188,7 @@ class CustomerColonyOutputSerializer(serializers.ModelSerializer):
             "location_url",
             "latitude",
             "longitude",
+            "is_business",
         )
 
 
@@ -239,6 +241,7 @@ class ColonyOutputSerializer(serializers.ModelSerializer):
             "location_url",
             "latitude",
             "longitude",
+            "is_business",
         )
 
 

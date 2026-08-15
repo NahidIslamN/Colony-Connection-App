@@ -595,7 +595,7 @@ class ColoniesForAssignmentAPIView(APIView):
         
         try:
             company = Company.objects.get(user=request.user)
-            colonies = Colony.objects.filter(colony_owner=company, status="active").values('id', 'name', 'region', 'status')
+            colonies = Colony.objects.filter(colony_owner=company, status="active").values('id', 'name', 'region', 'status', 'is_business')
             
             return success_response(
                 "Colonies retrieved successfully",

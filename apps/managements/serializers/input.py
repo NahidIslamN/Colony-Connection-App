@@ -9,13 +9,13 @@ User = get_user_model()
 class ColonyInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Colony
-        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status")
+        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status", "is_business")
 
 
 class ColonyCreateUpdateInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Colony
-        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status")
+        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status", "is_business")
         extra_kwargs = {
             'sales_reps': {'required': False, 'allow_empty': True},
             'customers': {'required': False, 'allow_empty': True},
@@ -24,13 +24,14 @@ class ColonyCreateUpdateInputSerializer(serializers.ModelSerializer):
             'location_url': {'required': False},
             'latitude': {'required': False},
             'longitude': {'required': False},
+            'is_business': {'required': False},
         }
 
 
 class ColonyPatchInputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Colony
-        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status")
+        fields = ('name', 'region', 'sales_reps', 'customers', 'location_url', 'latitude', 'longitude', "status", "is_business")
         extra_kwargs = {
             'name': {'required': False},
             'region': {'required': False},
@@ -39,6 +40,7 @@ class ColonyPatchInputSerializer(serializers.ModelSerializer):
             'location_url': {'required': False},
             'latitude': {'required': False},
             'longitude': {'required': False},
+            'is_business': {'required': False},
         }
 
 
@@ -134,6 +136,7 @@ class GetColoniesForSalesRepOutputSerializer(serializers.Serializer):
     colony_name = serializers.CharField(source='name')
     region = serializers.CharField()
     status = serializers.CharField()
+    is_business = serializers.BooleanField()
     sales_reps_count = serializers.SerializerMethodField()
     
     def get_sales_reps_count(self, obj):

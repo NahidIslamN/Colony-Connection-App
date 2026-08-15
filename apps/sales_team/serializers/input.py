@@ -4,6 +4,7 @@ from rest_framework import serializers
 class VisitColonyReportQueryInputSerializer(serializers.Serializer):
 	date = serializers.DateField(required=True, input_formats=["%Y-%m-%d"])
 	search = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+	is_business = serializers.BooleanField(required=False, allow_null=True)
 
 
 class VisitCustomerNoteInputSerializer(serializers.Serializer):

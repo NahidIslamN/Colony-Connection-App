@@ -76,8 +76,12 @@ class VisitColonyReport_SpecificDay(APIView):
         try:
             report_date = serializer.validated_data["date"]
             search = serializer.validated_data.get("search", "").strip()
+            is_business = serializer.validated_data.get("is_business")
             with transaction.atomic():
                 report_queryset = get_visit_colony_reports_for_sales_rep(sales_rep, report_date)
+
+            if is_business is not None:
+                report_queryset = report_queryset.filter(colony__is_business=is_business)
 
             if search:
                 report_queryset = report_queryset.filter(

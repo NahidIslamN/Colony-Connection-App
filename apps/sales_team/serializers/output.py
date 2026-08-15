@@ -92,6 +92,7 @@ class ReportColonyOutputSerializer(serializers.ModelSerializer):
             "location_url",
             "latitude",
             "longitude",
+            "is_business",
         )
 
 
