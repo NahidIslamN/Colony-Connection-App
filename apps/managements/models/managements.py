@@ -126,6 +126,11 @@ class Colony(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.is_public:
+            self.status = "active"
+        super().save(*args, **kwargs)
     
 
 
