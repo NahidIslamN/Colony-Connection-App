@@ -19,6 +19,7 @@ def _normalize_limit(raw_value) -> int:
 
 
 def _validate_active_subscription(company: Company) -> None:
+    return # TEMPORARILY BYPASSED SUBSCRIPTION CHECKS
     today = timezone.localdate()
 
     if not company.is_subscribe:
@@ -37,6 +38,8 @@ def enforce_company_active_status_limits(company: Company, lock_company: bool = 
     If subscription is inactive/expired/missing package, active reps and active colonies
     are forced to inactive to stop all related actions.
     """
+    return {"deactivated_sales_reps": 0, "deactivated_colonies": 0} # TEMPORARILY BYPASSED SUBSCRIPTION CHECKS
+    
     locked_company = _lock_company_with_plan(company) if lock_company else company
     today = timezone.localdate()
 
@@ -52,7 +55,7 @@ def enforce_company_active_status_limits(company: Company, lock_company: bool = 
         deactivated_colonies = Colony.objects.filter(
             colony_owner=locked_company,
             status="active",
-        ).update(status="inactive")
+        ).exclude(is_public=True).update(status="inactive")
         return {
             "deactivated_sales_reps": deactivated_sales_reps,
             "deactivated_colonies": deactivated_colonies,
@@ -79,6 +82,7 @@ def enforce_company_active_status_limits(company: Company, lock_company: bool = 
         colony_limit = _normalize_limit(plan.colony_limit)
         active_colony_ids = list(
             Colony.objects.filter(colony_owner=locked_company, status="active")
+            .exclude(is_public=True)
             .order_by("id")
             .values_list("id", flat=True)
         )
@@ -96,6 +100,8 @@ def enforce_company_active_status_limits(company: Company, lock_company: bool = 
 
 def enforce_sales_rep_creation_allowed(company: Company) -> Company:
     """Lock company row and validate plan rules before creating a sales rep."""
+    return company # TEMPORARILY BYPASSED SUBSCRIPTION CHECKS
+    
     locked_company = _lock_company_with_plan(company)
     _validate_active_subscription(locked_company)
     enforce_company_active_status_limits(locked_company, lock_company=False)
@@ -114,6 +120,8 @@ def enforce_sales_rep_creation_allowed(company: Company) -> Company:
 
 def enforce_sales_rep_update_allowed(company: Company) -> Company:
     """Lock company row and validate subscription rules before updating a sales rep."""
+    return company # TEMPORARILY BYPASSED SUBSCRIPTION CHECKS
+    
     locked_company = _lock_company_with_plan(company)
     _validate_active_subscription(locked_company)
     enforce_company_active_status_limits(locked_company, lock_company=False)
@@ -123,6 +131,8 @@ def enforce_sales_rep_update_allowed(company: Company) -> Company:
 
 def enforce_customer_creation_allowed(company: Company) -> Company:
     """Lock company row and validate plan rules before creating a customer."""
+    return company # TEMPORARILY BYPASSED SUBSCRIPTION CHECKS
+    
     locked_company = _lock_company_with_plan(company)
     _validate_active_subscription(locked_company)
     enforce_company_active_status_limits(locked_company, lock_company=False)
@@ -132,6 +142,8 @@ def enforce_customer_creation_allowed(company: Company) -> Company:
 
 def enforce_colony_creation_allowed(company: Company) -> Company:
     """Lock company row and validate plan rules before creating a colony."""
+    return company # TEMPORARILY BYPASSED SUBSCRIPTION CHECKS
+    
     locked_company = _lock_company_with_plan(company)
     _validate_active_subscription(locked_company)
     enforce_company_active_status_limits(locked_company, lock_company=False)
