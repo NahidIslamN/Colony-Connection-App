@@ -140,15 +140,15 @@ def get_visit_colony_report_by_id_for_sales_rep(sales_rep: SalesRepresentative, 
     if not report:
         return None
 
-    if sales_rep.status != "active":
-        raise serializers.ValidationError(
-            {"sales_rep": "Inactive sales representative cannot perform this action."}
-        )
+    # if sales_rep.status != "active":
+    #     raise serializers.ValidationError(
+    #         {"sales_rep": "Inactive sales representative cannot perform this action."}
+    #     )
 
-    if report.colony.status != "active":
-        raise serializers.ValidationError(
-            {"colony": "Inactive colony cannot be updated."}
-        )
+    # if report.colony.status != "active":
+    #     raise serializers.ValidationError(
+    #         {"colony": "Inactive colony cannot be updated."}
+    #     )
 
     return (
         VisitColony.objects.filter(id=report.id)
