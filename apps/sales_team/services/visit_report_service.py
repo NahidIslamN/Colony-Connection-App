@@ -90,13 +90,6 @@ def create_customer_for_colony(sales_rep: SalesRepresentative, colony_id: int, u
     # attach to colony
     colony.customers.add(customer)
 
-    # Add to today's visit report if it already exists
-    from django.utils import timezone
-    today = timezone.now().date()
-    today_report = VisitColony.objects.filter(colony=colony, date=today).first()
-    if today_report:
-        today_report.pending_customers.add(customer)
-
     return customer
 
 
@@ -270,6 +263,13 @@ def get_visit_colony_reports_for_sales_rep(sales_rep: SalesRepresentative, repor
 
         if created:
             visit_report.pending_customers.set(colony.customers.all())
+        else:
+            # Sync any newly added customers to pending_customers
+            existing_completed = visit_report.completed_customers.values_list('id', flat=True)
+            existing_pending = visit_report.pending_customers.values_list('id', flat=True)
+            missing_customers = colony.customers.exclude(id__in=existing_completed).exclude(id__in=existing_pending)
+            if missing_customers.exists():
+                visit_report.pending_customers.add(*missing_customers)
 
     return (
         VisitColony.objects.filter(Q(date=report_date, colony__status="active") & (Q(colony__sales_reps=sales_rep) | Q(colony__is_public=True)))
