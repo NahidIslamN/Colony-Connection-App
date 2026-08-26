@@ -52,10 +52,8 @@ def enforce_company_active_status_limits(company: Company, lock_company: bool = 
             company=locked_company,
             status="active",
         ).update(status="inactive")
-        deactivated_colonies = Colony.objects.filter(
-            colony_owner=locked_company,
-            status="active",
-        ).exclude(is_public=True).update(status="inactive")
+        # Ensure colonies are not set to inactive
+        deactivated_colonies = 0
         return {
             "deactivated_sales_reps": deactivated_sales_reps,
             "deactivated_colonies": deactivated_colonies,
@@ -88,9 +86,8 @@ def enforce_company_active_status_limits(company: Company, lock_company: bool = 
         )
         overflow_colony_ids = active_colony_ids[colony_limit:]
         if overflow_colony_ids:
-            deactivated_colonies = Colony.objects.filter(id__in=overflow_colony_ids).update(
-                status="inactive"
-            )
+            # We don't deactivate colonies anymore based on limits
+            pass
 
     return {
         "deactivated_sales_reps": deactivated_sales_reps,
