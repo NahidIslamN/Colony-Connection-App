@@ -1,14 +1,15 @@
 import os
+from decouple import config
 
 from django.core.asgi import get_asgi_application
 import django
 
 default_settings_module = (
     "config.settings.prod"
-    if os.getenv("APP_ENV", "development").strip().lower() in {"prod", "production"}
+    if config("APP_ENV", default="development").strip().lower() in {"prod", "production"}
     else "config.settings.dev"
 )
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", os.getenv("DJANGO_SETTINGS_MODULE", default_settings_module))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", config("DJANGO_SETTINGS_MODULE", default=default_settings_module))
 
 django_asgi_app = get_asgi_application()
 

@@ -5,12 +5,13 @@ import sys
 
 
 def main():
+    from decouple import config
     default_settings_module = (
         "config.settings.prod"
-        if os.getenv("APP_ENV", "development").strip().lower() in {"prod", "production"}
+        if config("APP_ENV", default="development").strip().lower() in {"prod", "production"}
         else "config.settings.dev"
     )
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", os.getenv("DJANGO_SETTINGS_MODULE", default_settings_module))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", config("DJANGO_SETTINGS_MODULE", default=default_settings_module))
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
