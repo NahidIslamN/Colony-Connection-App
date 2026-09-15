@@ -194,7 +194,7 @@ for static_dir in [os.path.join(BASE_DIR, "public/static"), os.path.join(BASE_DI
         STATICFILES_DIRS.append(static_dir)
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "public/static")
-MEDIA_URL = "api/v1/media/"
+MEDIA_URL = "/api/v1/media/"
 
 EMAIL_BACKEND = config("EMAIL_BACKEND")
 EMAIL_HOST = config("EMAIL_HOST")
