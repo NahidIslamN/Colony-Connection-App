@@ -1,11 +1,7 @@
 import os
 
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
-
-from apps.notifications.routing import websocket_urlpatterns as notification_websocket_urlpatterns
-from core.auth_middleware import CustomAuthMiddleware
+import django
 
 default_settings_module = (
     "config.settings.prod"
@@ -14,9 +10,17 @@ default_settings_module = (
 )
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", os.getenv("DJANGO_SETTINGS_MODULE", default_settings_module))
 
+django_asgi_app = get_asgi_application()
+
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.security.websocket import AllowedHostsOriginValidator
+
+from apps.notifications.routing import websocket_urlpatterns as notification_websocket_urlpatterns
+from core.auth_middleware import CustomAuthMiddleware
+
 application = ProtocolTypeRouter(
     {
-        "http": get_asgi_application(),
+        "http": django_asgi_app,
         "websocket": AllowedHostsOriginValidator(
             CustomAuthMiddleware(URLRouter(notification_websocket_urlpatterns))
         ),
