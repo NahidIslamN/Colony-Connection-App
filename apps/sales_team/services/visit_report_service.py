@@ -28,10 +28,17 @@ def create_customer_for_colony(sales_rep: SalesRepresentative, colony_id: int, u
     from rest_framework import serializers
 
     # verify colony belongs to this sales rep
+    has_permission = Colony.objects.filter(
+        Q(id=colony_id, status="active") & (Q(sales_reps=sales_rep) | Q(is_public=True))
+    ).exists()
+
+    if not has_permission:
+        return None
+
     colony = (
         Colony.objects.select_for_update()
         .prefetch_related('customers')
-        .filter(Q(id=colony_id, status="active") & (Q(sales_reps=sales_rep) | Q(is_public=True)))
+        .filter(id=colony_id, status="active")
         .first()
     )
 
@@ -161,11 +168,18 @@ def update_visit_colony_report_for_sales_rep(
     visit_colony_id: int,
     validated_data: dict,
 ):
+    has_permission = VisitColony.objects.filter(
+        Q(id=visit_colony_id) & (Q(colony__sales_reps=sales_rep) | Q(colony__is_public=True))
+    ).exists()
+
+    if not has_permission:
+        return None
+
     report = (
         VisitColony.objects.select_for_update()
         .select_related("colony")
         .prefetch_related("pending_customers", "completed_customers")
-        .filter(Q(id=visit_colony_id) & (Q(colony__sales_reps=sales_rep) | Q(colony__is_public=True)))
+        .filter(id=visit_colony_id)
         .first()
     )
     if not report:
